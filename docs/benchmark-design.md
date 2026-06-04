@@ -120,3 +120,6 @@ Use `docs/private-research-workflow.md` for candidate intake, verification, and
 publishing review. The committed templates in `templates/` are placeholders to
 copy into ignored private paths before adding real source references,
 vulnerable commits, or oracle details.
+
+Use `docs/operating-model.md` for the operator-facing security boundaries,
+network isolation procedure, case quality classes, and publishing checklist.

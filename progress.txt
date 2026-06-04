@@ -12,6 +12,7 @@
 - Private candidate research and oracle data should stay in ignored `research/local/` or `ground-truth/` paths; committed `templates/` files are placeholders to copy before adding real source references, vulnerable commits, or incident identifiers.
 - Leakage auditing lives in `src/sol_audit_challenges/leakage.py`; `audit-leakage` scans source directories, files, and tar archives, with optional private JSON denylist terms kept in ignored paths such as `research/local/` or `*.denylist.json`.
 - Complete fake end-to-end benchmark fixtures should live under `examples/fixtures/`; committed fake oracle examples can use `.oracle.example.json` so they validate without conflicting with ignored real `*.private.json` or `*.oracle.json` paths.
+- Operator security-boundary guidance lives in `docs/operating-model.md`; keep private candidate intake details in `docs/private-research-workflow.md` and cross-link both from user-facing docs.
 
 Started: Thu Jun  4 14:24:50 CEST 2026
 ---
@@ -105,4 +106,13 @@ Started: Thu Jun  4 14:24:50 CEST 2026
   - Patterns discovered: Keep reusable fake benchmark fixtures under `examples/fixtures/` and keep their public manifests/reports in the existing `examples/` subdirectories.
   - Gotchas encountered: Real `*.private.json` and `*.oracle.json` paths are ignored, so committed fake oracle examples should use a schema-valid but safe suffix such as `.oracle.example.json`.
   - Useful context: E2E tests should copy tracked example manifests into a temporary directory before bundling because `bundle-case` updates manifest package checksums in place.
+---
+## 2026-06-04 15:22:35 CEST - US-012
+- Documented the operating model and security boundaries for public repo contents, private curator storage, generated artifacts, network isolation, oracle withholding, case quality classes, and publishing review.
+- Cross-linked the operating model from README and benchmark design docs so operators can find the runbook alongside private research guidance.
+- Files changed: `docs/operating-model.md`, `docs/benchmark-design.md`, `README.md`, `prd.json`, `progress.txt`, `AGENTS.md`.
+- **Learnings for future iterations:**
+  - Patterns discovered: Keep operator-facing security boundaries, case quality classes, and publishing checklists in `docs/operating-model.md`.
+  - Gotchas encountered: Private research workflow docs and operating-model docs overlap; keep candidate intake details in the former and evaluation/distribution boundaries in the latter.
+  - Useful context: Documentation stories still need the full pytest suite before updating PRD status and committing.
 ---

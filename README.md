@@ -59,7 +59,7 @@ python -m pytest
 - `schemas/` - JSON schemas for public manifests and private oracle records
 - `examples/` - fake public examples safe to commit
 - `templates/` - safe templates to copy into ignored private curator paths
-- `docs/` - benchmark design and operator documentation
+- `docs/` - benchmark design, operating model, and operator documentation
 
 ## Fake Benchmark Fixture
 
@@ -87,6 +87,15 @@ paths before adding real data.
 
 See `docs/private-research-workflow.md` for the required candidate intake,
 verification, sanitization, and publishing checklist.
+
+## Operating Model
+
+Use `docs/operating-model.md` as the operator runbook for the public repository,
+private curator storage, and generated artifact boundaries. It documents how to
+withhold private oracle files from evaluated tools, run cases with Docker
+network isolation, classify high-quality, low-quality, and special-handling
+cases, and complete the publishing review checklist before distributing a
+bundle.
 
 ## Submitted Finding Reports
 

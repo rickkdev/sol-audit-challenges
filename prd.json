@@ -180,7 +180,7 @@
         "Docs link to the relevant CLI commands and schemas"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": ""
     }
   ]
