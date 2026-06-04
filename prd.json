@@ -15,7 +15,7 @@
         "Run the available tests or validation checks successfully"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

@@ -1,3 +1,15 @@
 # Ralph Progress Log
+## Codebase Patterns
+- Python CLI code uses a `src/sol_audit_challenges/` package layout with Typer commands exposed through the `sol-audit-challenges` console script in `pyproject.toml`.
+- Use `.venv/bin/python -m pytest` after installing `.[dev]` locally to run the pytest suite against the editable package.
+
 Started: Thu Jun  4 14:24:50 CEST 2026
+---
+## 2026-06-04 14:44:03 CEST - US-001
+- Implemented a Python 3.12 CLI project skeleton with package metadata, Typer console entrypoint, version command, and pytest scaffolding.
+- Files changed: `pyproject.toml`, `src/sol_audit_challenges/__init__.py`, `src/sol_audit_challenges/cli.py`, `tests/test_cli.py`, `.gitignore`, `README.md`, `prd.json`, `progress.txt`, `AGENTS.md`.
+- **Learnings for future iterations:**
+  - Patterns discovered: CLI commands should be added under `src/sol_audit_challenges/cli.py`; the console script is configured in `pyproject.toml`.
+  - Gotchas encountered: Typer collapses a single-command app unless an explicit callback is present, so keep the root callback when adding subcommands.
+  - Useful context: Install with `python -m pip install -e ".[dev]"` before running `.venv/bin/python -m pytest`.
 ---

@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sol-audit-challenges"
+version = "0.1.0"
+description = "CLI tooling for packaging and evaluating sanitized Web3 audit benchmark challenges."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [
+  { name = "sol-audit-challenges maintainers" }
+]
+dependencies = [
+  "jsonschema>=4.23",
+  "pydantic>=2.10",
+  "typer>=0.15",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3",
+]
+
+[project.scripts]
+sol-audit-challenges = "sol_audit_challenges.cli:app"
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
