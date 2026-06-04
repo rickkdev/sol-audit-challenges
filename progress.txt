@@ -4,6 +4,7 @@
 - Use `.venv/bin/python -m pytest` after installing `.[dev]` locally to run the pytest suite against the editable package.
 - JSON schema validation lives in `src/sol_audit_challenges/validation.py`; CLI validation commands should report both the input file path and a `#/...` schema location for failures.
 - Prepared case outputs are split into `<output-dir>/public/<case-id>/source` for distributable source snapshots and `<output-dir>/private/` for draft oracle files.
+- Sanitization lives in `src/sol_audit_challenges/sanitize.py`; replacement reports should include labels, replacement values, counts, and file paths, but never the sensitive `find` strings from sanitizer config.
 
 Started: Thu Jun  4 14:24:50 CEST 2026
 ---
@@ -30,4 +31,12 @@ Started: Thu Jun  4 14:24:50 CEST 2026
   - Patterns discovered: Keep Git export behavior in a focused helper module and keep Typer commands thin.
   - Gotchas encountered: Draft private oracle commits should be resolved to full hex SHAs so they satisfy `schemas/private-oracle.schema.json`.
   - Useful context: Tests can create temporary local Git repositories and validate generated private oracle files through the CLI.
+---
+## 2026-06-04 14:52:57 CEST - US-004
+- Implemented `sanitize-case` with default removal rules for README/docs/audits/deployments/build artifacts/exploit clues, optional JSON-configured removals, configurable string replacement rules, and a public-safe sanitizer report.
+- Files changed: `src/sol_audit_challenges/sanitize.py`, `src/sol_audit_challenges/cli.py`, `tests/test_cli.py`, `README.md`, `prd.json`, `progress.txt`, `AGENTS.md`.
+- **Learnings for future iterations:**
+  - Patterns discovered: Keep sanitization behavior in `src/sol_audit_challenges/sanitize.py` and keep Typer commands as thin error-handling wrappers.
+  - Gotchas encountered: Root-level glob matching needs explicit patterns such as `README.*` and `docs/**`; `**/README.*` alone does not cover root files with `fnmatch`.
+  - Useful context: Sanitizer reports intentionally omit replacement `find` strings so public reports do not reveal protocol names, incident names, addresses, or transaction hashes from private config.
 ---

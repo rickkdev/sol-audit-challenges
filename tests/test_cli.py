@@ -161,6 +161,120 @@ def test_prepare_case_exports_requested_commit_without_git_metadata(
     assert validation.exit_code == 0, validation.output
 
 
+def test_sanitize_case_removes_default_clue_paths(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    (source / "src").mkdir(parents=True)
+    (source / "docs").mkdir()
+    (source / "broadcast").mkdir()
+    (source / "src" / "Example.sol").write_text("contract Example {}\n", encoding="utf-8")
+    (source / "README.md").write_text("incident writeup\n", encoding="utf-8")
+    (source / "docs" / "audit.md").write_text("audit clue\n", encoding="utf-8")
+    (source / "broadcast" / "run.json").write_text("deployment clue\n", encoding="utf-8")
+    (source / "src" / "exploit.t.sol").write_text("exploit clue\n", encoding="utf-8")
+
+    output = tmp_path / "sanitized"
+    report = tmp_path / "sanitizer-report.json"
+    result = runner.invoke(
+        app,
+        [
+            "sanitize-case",
+            "--source-dir",
+            str(source),
+            "--output-dir",
+            str(output),
+            "--report",
+            str(report),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert (output / "src" / "Example.sol").exists()
+    assert not (output / "README.md").exists()
+    assert not (output / "docs").exists()
+    assert not (output / "broadcast").exists()
+    assert not (output / "src" / "exploit.t.sol").exists()
+
+    report_data = json.loads(report.read_text(encoding="utf-8"))
+    assert sorted(report_data["removed_files"]) == [
+        "README.md",
+        "broadcast/",
+        "docs/",
+        "src/exploit.t.sol",
+    ]
+
+
+def test_sanitize_case_applies_replacements_without_reporting_secrets(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "Vault.sol").write_text(
+        "contract RealProtocolVault { address constant TARGET = 0x1234567890abcdef1234567890abcdef12345678; }\n",
+        encoding="utf-8",
+    )
+    config = tmp_path / "sanitize.json"
+    write_json(
+        config,
+        {
+            "replace": [
+                {
+                    "label": "protocol_name",
+                    "find": "RealProtocol",
+                    "replace": "ExampleProtocol",
+                },
+                {
+                    "label": "address",
+                    "find": "0x1234567890abcdef1234567890abcdef12345678",
+                    "replace": "0x0000000000000000000000000000000000000000",
+                },
+            ]
+        },
+    )
+
+    output = tmp_path / "sanitized"
+    report = tmp_path / "public-report.json"
+    result = runner.invoke(
+        app,
+        [
+            "sanitize-case",
+            "--source-dir",
+            str(source),
+            "--output-dir",
+            str(output),
+            "--config",
+            str(config),
+            "--report",
+            str(report),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    sanitized_source = (output / "Vault.sol").read_text(encoding="utf-8")
+    assert "ExampleProtocolVault" in sanitized_source
+    assert "0x0000000000000000000000000000000000000000" in sanitized_source
+    assert "RealProtocol" not in sanitized_source
+    assert "0x1234567890abcdef1234567890abcdef12345678" not in sanitized_source
+
+    report_text = report.read_text(encoding="utf-8")
+    assert "RealProtocol" not in report_text
+    assert "0x1234567890abcdef1234567890abcdef12345678" not in report_text
+    report_data = json.loads(report_text)
+    assert report_data["replacements"] == [
+        {
+            "label": "protocol_name",
+            "replacement": "ExampleProtocol",
+            "count": 1,
+            "files": [{"path": "Vault.sol", "count": 1}],
+        },
+        {
+            "label": "address",
+            "replacement": "0x0000000000000000000000000000000000000000",
+            "count": 1,
+            "files": [{"path": "Vault.sol", "count": 1}],
+        },
+    ]
+
+
 def write_json(path: Path, value: object) -> None:
     path.write_text(json.dumps(value), encoding="utf-8")
 

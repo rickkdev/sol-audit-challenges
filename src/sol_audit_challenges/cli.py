@@ -7,6 +7,7 @@ import typer
 
 from sol_audit_challenges import __version__
 from sol_audit_challenges.prepare import PrepareCaseError, prepare_case
+from sol_audit_challenges.sanitize import SanitizeCaseError, sanitize_case
 from sol_audit_challenges.validation import (
     ManifestValidationError,
     validate_private_oracle,
@@ -92,6 +93,49 @@ def prepare_case_command(
     typer.echo(f"Prepared {prepared.case_id} at {prepared.commit}")
     typer.echo(f"Source snapshot: {prepared.source_dir}")
     typer.echo(f"Draft private oracle: {prepared.private_oracle}")
+
+
+@app.command("sanitize-case")
+def sanitize_case_command(
+    source_dir: Path = typer.Option(
+        ...,
+        "--source-dir",
+        exists=True,
+        file_okay=False,
+        readable=True,
+        help="Source snapshot directory to sanitize.",
+    ),
+    output_dir: Path = typer.Option(
+        ...,
+        "--output-dir",
+        file_okay=False,
+        help="Directory where the sanitized source snapshot is written.",
+    ),
+    config: Path | None = typer.Option(
+        None,
+        "--config",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+        help="Optional sanitizer config JSON file.",
+    ),
+    report: Path | None = typer.Option(
+        None,
+        "--report",
+        dir_okay=False,
+        help="Optional sanitizer report path. Defaults next to the output directory.",
+    ),
+) -> None:
+    """Remove obvious leakage clues and apply configured source replacements."""
+    try:
+        sanitized = sanitize_case(source_dir, output_dir, config, report)
+    except SanitizeCaseError as exc:
+        typer.secho(f"Sanitize failed: {exc}", err=True, fg=typer.colors.RED)
+        raise typer.Exit(code=1) from exc
+
+    typer.echo(f"Sanitized source snapshot: {sanitized.output_dir}")
+    typer.echo(f"Sanitizer report: {sanitized.report_path}")
+    typer.echo(f"Removed paths: {len(sanitized.removed_files)}")
 
 
 def _run_validation(path: Path, validator: Callable[[Path], None], label: str) -> None:

@@ -34,3 +34,4 @@ ralph run --max 20
 - Keep the Typer root callback in `src/sol_audit_challenges/cli.py`; it prevents the app from collapsing into a single command and preserves subcommand behavior
 - Keep JSON schema validation helpers in `src/sol_audit_challenges/validation.py`; CLI validation errors should include the input file path and the failing schema location.
 - `prepare-case` writes public snapshots under `<output-dir>/public/<case-id>/source` and draft private oracles under `<output-dir>/private/`; keep this separation when adding bundle, run, or scoring commands.
+- Keep sanitization helpers in `src/sol_audit_challenges/sanitize.py`; sanitizer reports may include replacement labels/counts but must not print sensitive replacement `find` strings from private config.

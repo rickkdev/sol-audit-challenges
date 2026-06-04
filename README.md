@@ -32,6 +32,7 @@ sol-audit-challenges version
 sol-audit-challenges validate-public examples/challenge-manifest/case-0000.public.json
 sol-audit-challenges validate-private path/to/case-0000.private.json
 sol-audit-challenges prepare-case --repo path/to/repo --commit abcdef1 --case-id case-0001 --output-dir work/cases
+sol-audit-challenges sanitize-case --source-dir work/cases/public/case-0001/source --output-dir work/sanitized/case-0001/source --config sanitize.json
 ```
 
 During development, the module can also be run directly after installation:
@@ -61,3 +62,28 @@ python -m pytest
 history and repository metadata from the snapshot. It also writes a draft
 private oracle to `<output-dir>/private/<case-id>.private.json`; keep that
 private directory out of public challenge bundles.
+
+## Sanitizing Cases
+
+`sanitize-case` copies a prepared source snapshot to a sanitized output
+directory, removes default clue-bearing paths such as README files, docs,
+audits, deployments, `broadcast`, `cache`, `out`, and exploit or proof-of-
+concept artifacts, then applies optional string replacements.
+
+The optional config file is JSON:
+
+```json
+{
+  "remove": ["research-notes/**"],
+  "replace": [
+    {
+      "label": "protocol_name",
+      "find": "RealProtocol",
+      "replace": "ExampleProtocol"
+    }
+  ]
+}
+```
+
+The sanitizer report lists removed paths and replacement labels/counts, but it
+does not print the sensitive `find` strings from the config.
