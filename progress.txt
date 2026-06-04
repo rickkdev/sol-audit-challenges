@@ -9,6 +9,7 @@
 - Running lives in `src/sol_audit_challenges/run.py`; `run-case` validates bundle checksums, exposes only `source/` and `public-manifest.json` in the tool workspace, and writes persistent run artifacts under `<output-dir>/runs/<case-id>/<run-id>/`.
 - Submitted finding report validation uses `schemas/submitted-report.schema.json` and the `validate-report` CLI command; committed examples should stay fake and live under `examples/submitted-reports/`.
 - Scoring lives in `src/sol_audit_challenges/score.py`; `score-report` uses deterministic location and keyword signals and should not print raw private oracle origin/sources or accepted-finding text by default.
+- Private candidate research and oracle data should stay in ignored `research/local/` or `ground-truth/` paths; committed `templates/` files are placeholders to copy before adding real source references, vulnerable commits, or incident identifiers.
 
 Started: Thu Jun  4 14:24:50 CEST 2026
 ---
@@ -75,4 +76,13 @@ Started: Thu Jun  4 14:24:50 CEST 2026
   - Patterns discovered: Keep scoring behavior in `src/sol_audit_challenges/score.py` and keep the Typer command focused on option parsing, error handling, and concise status output.
   - Gotchas encountered: Scoring output should include maintainer-useful signals but avoid raw private oracle accepted-finding text, origin links, and sources by default.
   - Useful context: The initial scorer is deterministic and conservative, combining normalized source paths, nearby lines, symbols, and keyword overlap for human-review-friendly status decisions.
+---
+## 2026-06-04 15:09:25 CEST - US-009
+- Documented the private candidate research workflow, verification steps, storage boundaries, and publishing checklist for maintaining private case data without committing answers publicly.
+- Added safe private candidate/oracle templates, a fake public candidate example, expanded ignore rules for private research artifacts, and a regression test for ignored private paths.
+- Files changed: `docs/private-research-workflow.md`, `docs/benchmark-design.md`, `templates/private-candidate.template.json`, `templates/private-oracle.template.json`, `examples/candidates/case-0000.candidate.public.json`, `.gitignore`, `README.md`, `tests/test_cli.py`, `prd.json`, `progress.txt`, `AGENTS.md`.
+- **Learnings for future iterations:**
+  - Patterns discovered: Keep committed research examples fake; copy templates into ignored `research/local/` or `ground-truth/` paths before adding real candidate or oracle data.
+  - Gotchas encountered: Template filenames must avoid ignored suffixes such as `*.private.json` so the safe placeholders can be committed.
+  - Useful context: `git check-ignore` is useful for testing that private candidate files, oracle files, and local research notes remain untracked by default.
 ---

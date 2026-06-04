@@ -115,3 +115,8 @@ Avoid or mark as low priority:
 This public repository should contain tooling, schemas, and design docs only.
 Concrete incident-to-case mappings belong in ignored private files under
 `ground-truth/` or external private storage.
+
+Use `docs/private-research-workflow.md` for candidate intake, verification, and
+publishing review. The committed templates in `templates/` are placeholders to
+copy into ignored private paths before adding real source references,
+vulnerable commits, or oracle details.

@@ -1,0 +1,16 @@
+{
+  "case_id": "case-0000",
+  "status": "example",
+  "language": ["solidity"],
+  "public_summary": "A fake candidate used to demonstrate the public metadata shape without revealing a real incident.",
+  "selection_notes": [
+    "Source should be available at a reproducible revision.",
+    "Root cause should be visible from the source snapshot.",
+    "The public bundle must not include private source references or answer clues."
+  ],
+  "quality_signals": {
+    "snapshot_reproducible": true,
+    "root_cause_visible_in_source": true,
+    "judgeable_without_network": true
+  }
+}

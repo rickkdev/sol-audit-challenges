@@ -648,6 +648,32 @@ def test_score_report_marks_duplicate_matches(tmp_path: Path) -> None:
     ]
 
 
+def test_private_research_paths_are_git_ignored() -> None:
+    if shutil.which("git") is None:
+        pytest.skip("git is required to verify ignore rules")
+
+    result = subprocess.run(
+        [
+            "git",
+            "check-ignore",
+            "ground-truth/case-0001.private.json",
+            "research/local/candidates/case-0001.candidate.private.json",
+            "research/local/notes/case-0001.md",
+            "local-research.case-0001.md",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    ignored_paths = set(result.stdout.splitlines())
+    assert "ground-truth/case-0001.private.json" in ignored_paths
+    assert "research/local/candidates/case-0001.candidate.private.json" in ignored_paths
+    assert "research/local/notes/case-0001.md" in ignored_paths
+    assert "local-research.case-0001.md" in ignored_paths
+
+
 def test_score_report_marks_case_mismatch_out_of_scope(tmp_path: Path) -> None:
     oracle = tmp_path / "case-0011.private.json"
     write_json(oracle, fake_oracle("case-0011"))

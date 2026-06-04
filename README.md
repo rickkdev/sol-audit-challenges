@@ -57,7 +57,19 @@ python -m pytest
 - `tests/` - pytest suite
 - `schemas/` - JSON schemas for public manifests and private oracle records
 - `examples/` - fake public examples safe to commit
+- `templates/` - safe templates to copy into ignored private curator paths
 - `docs/` - benchmark design and operator documentation
+
+## Private Candidate Research
+
+Real candidate incidents, source references, vulnerable commits, and oracle
+records are private maintainer data. Keep them in ignored paths such as
+`research/local/` and `ground-truth/`, or in a separate private curator
+repository. Start from the templates in `templates/` and copy them into ignored
+paths before adding real data.
+
+See `docs/private-research-workflow.md` for the required candidate intake,
+verification, sanitization, and publishing checklist.
 
 ## Submitted Finding Reports
 
