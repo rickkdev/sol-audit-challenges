@@ -6,6 +6,7 @@ from typing import Callable
 import typer
 
 from sol_audit_challenges import __version__
+from sol_audit_challenges.bundle import BundleCaseError, bundle_case
 from sol_audit_challenges.prepare import PrepareCaseError, prepare_case
 from sol_audit_challenges.sanitize import SanitizeCaseError, sanitize_case
 from sol_audit_challenges.validation import (
@@ -136,6 +137,64 @@ def sanitize_case_command(
     typer.echo(f"Sanitized source snapshot: {sanitized.output_dir}")
     typer.echo(f"Sanitizer report: {sanitized.report_path}")
     typer.echo(f"Removed paths: {len(sanitized.removed_files)}")
+
+
+@app.command("bundle-case")
+def bundle_case_command(
+    source_dir: Path = typer.Option(
+        ...,
+        "--source-dir",
+        exists=True,
+        file_okay=False,
+        readable=True,
+        help="Sanitized source snapshot directory to archive.",
+    ),
+    case_id: str = typer.Option(
+        ...,
+        "--case-id",
+        help="Challenge case id, such as case-0001.",
+    ),
+    output_dir: Path = typer.Option(
+        ...,
+        "--output-dir",
+        file_okay=False,
+        help="Directory where the public archive and manifest are written.",
+    ),
+    manifest: Path | None = typer.Option(
+        None,
+        "--manifest",
+        dir_okay=False,
+        help="Optional existing public manifest to update.",
+    ),
+    language: list[str] | None = typer.Option(
+        None,
+        "--language",
+        help="Challenge language. Can be provided multiple times.",
+    ),
+    prompt: str = typer.Option(
+        "Find security issues in this codebase. Submit each finding with affected files, root cause, exploit impact, and a minimal proof sketch.",
+        "--prompt",
+        help="Public prompt written when creating a new manifest.",
+    ),
+) -> None:
+    """Package a sanitized source snapshot as a deterministic public archive."""
+    try:
+        bundled = bundle_case(
+            source_dir=source_dir,
+            case_id=case_id,
+            output_dir=output_dir,
+            manifest_path=manifest,
+            language=tuple(language or ["solidity"]),
+            prompt=prompt,
+        )
+    except BundleCaseError as exc:
+        typer.secho(f"Bundle failed: {exc}", err=True, fg=typer.colors.RED)
+        raise typer.Exit(code=1) from exc
+
+    typer.echo(f"Bundled {bundled.case_id}")
+    typer.echo(f"Archive: {bundled.archive_path}")
+    typer.echo(f"Manifest: {bundled.manifest_path}")
+    typer.echo(f"SHA256: {bundled.sha256}")
 
 
 def _run_validation(path: Path, validator: Callable[[Path], None], label: str) -> None:

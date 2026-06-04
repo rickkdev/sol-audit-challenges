@@ -1,6 +1,8 @@
+import hashlib
 import json
 import shutil
 import subprocess
+import tarfile
 from pathlib import Path
 
 import pytest
@@ -275,8 +277,124 @@ def test_sanitize_case_applies_replacements_without_reporting_secrets(
     ]
 
 
+def test_bundle_case_creates_deterministic_archive_and_manifest(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source"
+    (source / "src").mkdir(parents=True)
+    (source / "src" / "Example.sol").write_text("contract Example {}\n", encoding="utf-8")
+    (source / "notes").mkdir()
+    (source / "notes" / "research-notes.txt").write_text("private clue\n", encoding="utf-8")
+    (source / "reports").mkdir()
+    (source / "reports" / "sanitizer-report.json").write_text("{}", encoding="utf-8")
+    (source / ".git").mkdir()
+    (source / ".git" / "config").write_text("[remote]\n", encoding="utf-8")
+    (source / "case-0005.private.json").write_text("{}", encoding="utf-8")
+
+    output = tmp_path / "public"
+    result = runner.invoke(
+        app,
+        [
+            "bundle-case",
+            "--source-dir",
+            str(source),
+            "--case-id",
+            "case-0005",
+            "--output-dir",
+            str(output),
+            "--language",
+            "solidity",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    archive = output / "bundles" / "case-0005.tar.gz"
+    first_archive_bytes = archive.read_bytes()
+    manifest = output / "case-0005.public.json"
+    manifest_data = json.loads(manifest.read_text(encoding="utf-8"))
+    assert manifest_data["package"]["path"] == "bundles/case-0005.tar.gz"
+    assert manifest_data["package"]["sha256"] == sha256_bytes(first_archive_bytes)
+
+    with tarfile.open(archive, "r:gz") as package:
+        names = package.getnames()
+        members = package.getmembers()
+
+    assert names == ["source/src/Example.sol"]
+    assert [member.mtime for member in members] == [0]
+    assert [member.uid for member in members] == [0]
+    assert [member.gid for member in members] == [0]
+
+    second = runner.invoke(
+        app,
+        [
+            "bundle-case",
+            "--source-dir",
+            str(source),
+            "--case-id",
+            "case-0005",
+            "--output-dir",
+            str(output),
+            "--language",
+            "solidity",
+        ],
+    )
+
+    assert second.exit_code == 0, second.output
+    assert archive.read_bytes() == first_archive_bytes
+
+    validation = runner.invoke(app, ["validate-public", str(manifest)])
+    assert validation.exit_code == 0, validation.output
+
+
+def test_bundle_case_updates_existing_manifest_package_only(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "Vault.sol").write_text("contract Vault {}\n", encoding="utf-8")
+    manifest = tmp_path / "case-0006.public.json"
+    write_json(
+        manifest,
+        {
+            "id": "case-0006",
+            "language": ["solidity"],
+            "package": {
+                "type": "archive",
+                "path": "old.tar.gz",
+                "sha256": "0" * 64,
+            },
+            "prompt": "Existing public prompt.",
+            "build": {"commands": ["forge test"], "network": "disabled"},
+        },
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "bundle-case",
+            "--source-dir",
+            str(source),
+            "--case-id",
+            "case-0006",
+            "--output-dir",
+            str(tmp_path / "public"),
+            "--manifest",
+            str(manifest),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    manifest_data = json.loads(manifest.read_text(encoding="utf-8"))
+    assert manifest_data["prompt"] == "Existing public prompt."
+    assert manifest_data["build"] == {"commands": ["forge test"], "network": "disabled"}
+    assert manifest_data["package"]["path"] == "public/bundles/case-0006.tar.gz"
+    assert manifest_data["package"]["sha256"] != "0" * 64
+
+
 def write_json(path: Path, value: object) -> None:
     path.write_text(json.dumps(value), encoding="utf-8")
+
+
+def sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
 
 
 def run_git(repo: Path, *args: str) -> str:

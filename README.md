@@ -33,6 +33,7 @@ sol-audit-challenges validate-public examples/challenge-manifest/case-0000.publi
 sol-audit-challenges validate-private path/to/case-0000.private.json
 sol-audit-challenges prepare-case --repo path/to/repo --commit abcdef1 --case-id case-0001 --output-dir work/cases
 sol-audit-challenges sanitize-case --source-dir work/cases/public/case-0001/source --output-dir work/sanitized/case-0001/source --config sanitize.json
+sol-audit-challenges bundle-case --source-dir work/sanitized/case-0001/source --case-id case-0001 --output-dir work/public
 ```
 
 During development, the module can also be run directly after installation:
@@ -87,3 +88,15 @@ The optional config file is JSON:
 
 The sanitizer report lists removed paths and replacement labels/counts, but it
 does not print the sensitive `find` strings from the config.
+
+## Bundling Cases
+
+`bundle-case` packages a sanitized source snapshot as a deterministic
+`tar.gz` archive under `<output-dir>/bundles/<case-id>.tar.gz` and writes a
+public manifest at `<output-dir>/<case-id>.public.json`. Re-running the command
+with unchanged inputs produces the same archive checksum.
+
+The archive contains the snapshot under a `source/` prefix and excludes private
+oracle files, local research notes, `.git` metadata, generated reports, and run
+outputs. Pass `--manifest path/to/case-0001.public.json` to update an existing
+public manifest while preserving fields such as `prompt` and `build`.

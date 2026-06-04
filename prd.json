@@ -75,7 +75,7 @@
         "Tests confirm checksum stability and excluded paths"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

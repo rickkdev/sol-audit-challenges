@@ -5,6 +5,7 @@
 - JSON schema validation lives in `src/sol_audit_challenges/validation.py`; CLI validation commands should report both the input file path and a `#/...` schema location for failures.
 - Prepared case outputs are split into `<output-dir>/public/<case-id>/source` for distributable source snapshots and `<output-dir>/private/` for draft oracle files.
 - Sanitization lives in `src/sol_audit_challenges/sanitize.py`; replacement reports should include labels, replacement values, counts, and file paths, but never the sensitive `find` strings from sanitizer config.
+- Bundling lives in `src/sol_audit_challenges/bundle.py`; public archives are deterministic `tar.gz` files under `bundles/<case-id>.tar.gz`, contain files below a `source/` prefix, and update public manifests with relative package paths plus SHA-256 checksums.
 
 Started: Thu Jun  4 14:24:50 CEST 2026
 ---
@@ -39,4 +40,12 @@ Started: Thu Jun  4 14:24:50 CEST 2026
   - Patterns discovered: Keep sanitization behavior in `src/sol_audit_challenges/sanitize.py` and keep Typer commands as thin error-handling wrappers.
   - Gotchas encountered: Root-level glob matching needs explicit patterns such as `README.*` and `docs/**`; `**/README.*` alone does not cover root files with `fnmatch`.
   - Useful context: Sanitizer reports intentionally omit replacement `find` strings so public reports do not reveal protocol names, incident names, addresses, or transaction hashes from private config.
+---
+## 2026-06-04 14:56:41 CEST - US-005
+- Implemented `bundle-case` for deterministic public `tar.gz` archives, public manifest creation/updating, SHA-256 package checksums, and exclusion of private oracle files, local notes, `.git` metadata, reports, and run outputs.
+- Files changed: `src/sol_audit_challenges/bundle.py`, `src/sol_audit_challenges/cli.py`, `tests/test_cli.py`, `README.md`, `prd.json`, `progress.txt`, `AGENTS.md`.
+- **Learnings for future iterations:**
+  - Patterns discovered: Keep bundle/archive behavior in `src/sol_audit_challenges/bundle.py`; the Typer command should only translate options, errors, and output paths.
+  - Gotchas encountered: Deterministic gzip archives need both normalized tar member metadata and a fixed gzip `mtime`.
+  - Useful context: Bundle archives expose source files under `source/`, so future `run-case` extraction should expect that public workspace prefix.
 ---
