@@ -5,6 +5,29 @@ harness around sanitized historical Web3 source snapshots. The project packages
 public challenge bundles, runs tools against them without oracle leakage, and
 scores submitted findings against private records.
 
+## Language Scope
+
+The project is Solidity-first, but the core bundle/run/validate/score flow is
+not limited to Solidity source files. Public manifests store `language` as an
+array of strings, and `bundle-case` accepts repeated `--language` values, so a
+case can be labeled for other Web3 ecosystems such as Rust/Solana, Move, Cairo,
+TypeScript, or mixed-language repositories.
+
+Current defaults are still tuned for Solidity-style Web3 incidents:
+
+- The fake end-to-end fixture is a Solidity project.
+- `bundle-case` defaults to `--language solidity` when no language is provided.
+- Sanitization defaults target common Web3 clue paths such as audits, docs,
+  deployments, `broadcast`, `cache`, `out`, and exploit/proof-of-concept files.
+- Leakage auditing includes Ethereum-specific indicators such as addresses and
+  transaction hashes.
+
+Use non-Solidity cases only after adding case-specific sanitizer config,
+private denylist terms, build instructions, and reviewer checks for that
+ecosystem. The generic scoring path can compare submitted files, symbols,
+lines, and keywords for any codebase, but richer language-aware judging is not
+implemented yet.
+
 ## Requirements
 
 - Python 3.12 or newer
@@ -152,6 +175,17 @@ The archive contains the snapshot under a `source/` prefix and excludes private
 oracle files, local research notes, `.git` metadata, generated reports, and run
 outputs. Pass `--manifest path/to/case-0001.public.json` to update an existing
 public manifest while preserving fields such as `prompt` and `build`.
+
+For non-Solidity or mixed-language Web3 cases, pass one or more language labels:
+
+```bash
+sol-audit-challenges bundle-case \
+  --source-dir work/sanitized/case-0002/source \
+  --case-id case-0002 \
+  --output-dir work/public \
+  --language rust \
+  --language typescript
+```
 
 ## Auditing Leakage
 
