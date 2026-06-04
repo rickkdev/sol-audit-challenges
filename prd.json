@@ -1,0 +1,187 @@
+{
+  "project": "sol-audit-challenges",
+  "branchName": "ralph/build-benchmark-harness",
+  "description": "Build a Python CLI and schema-driven benchmark harness for packaging sanitized historical Web3 vulnerable source snapshots, running AI security tools against them without leakage, and scoring submitted findings against private oracle records. Use Python 3.12 with Typer for the CLI, Pydantic/jsonschema for validation, pytest for tests, and Docker/network isolation where needed.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create Python CLI project skeleton",
+      "description": "As a developer, I need a maintainable Python CLI foundation so future stories can add benchmark packaging and evaluation commands.",
+      "acceptanceCriteria": [
+        "Add a Python 3.12 project configuration with package metadata and console entrypoint named sol-audit-challenges",
+        "Use Typer or an equivalent lightweight CLI framework",
+        "Add pytest-based test scaffolding",
+        "Add README instructions for installing and running the CLI locally",
+        "Run the available tests or validation checks successfully"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Validate public and private manifests",
+      "description": "As a curator, I need CLI validation for public challenge manifests and private oracle files so malformed benchmark data is caught before packaging or scoring.",
+      "acceptanceCriteria": [
+        "Add a CLI command that validates a public challenge manifest against schemas/public-challenge.schema.json",
+        "Add a CLI command that validates a private oracle file against schemas/private-oracle.schema.json",
+        "Validation errors include the file path and the failing schema location",
+        "Tests cover valid and invalid manifests",
+        "Run the available tests successfully"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Prepare source snapshot from a vulnerable commit",
+      "description": "As a curator, I need a command that exports a repository at a specific commit into a clean source snapshot without Git history.",
+      "acceptanceCriteria": [
+        "Add a prepare-case command that accepts repo URL or local path, commit, case id, and output directory",
+        "The generated source snapshot contains files from the requested commit",
+        "The generated source snapshot does not contain .git, remotes, branches, tags, or commit history",
+        "The command writes a draft private oracle file outside the public bundle path",
+        "Tests cover local fixture repository export and confirm .git metadata is absent"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Sanitize source snapshots for leakage",
+      "description": "As a curator, I need repeatable sanitization rules that remove obvious incident clues while preserving buildable source code.",
+      "acceptanceCriteria": [
+        "Add sanitizer configuration for removing or replacing files such as README, audits, docs, deployments, broadcast, cache, out, and known exploit artifacts",
+        "Add configurable string replacement rules for protocol names, incident names, addresses, and transaction hashes",
+        "Sanitizer produces a report of removed files and replacements without exposing private oracle data in public output",
+        "Tests cover removal rules and replacement rules",
+        "Run the available tests successfully"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Build immutable challenge bundles",
+      "description": "As a benchmark maintainer, I need sanitized snapshots packaged as deterministic archives with public manifests and checksums.",
+      "acceptanceCriteria": [
+        "Add a bundle-case command that creates a tar.gz archive from a sanitized source snapshot",
+        "Archive contents are deterministic across repeated runs when inputs are unchanged",
+        "The command writes or updates a public challenge manifest with archive path and sha256",
+        "The archive excludes private oracle files, local research notes, .git metadata, and generated reports",
+        "Tests confirm checksum stability and excluded paths"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Run tools in an isolated benchmark environment",
+      "description": "As an evaluator, I need to run an AI security tool against a challenge bundle with no internet and no access to private oracle data.",
+      "acceptanceCriteria": [
+        "Add a run-case command that extracts a challenge bundle into a temporary workspace",
+        "The runner supports a configurable command for the tool under test",
+        "The runner has a network-disabled Docker mode or clearly documented local no-network fallback",
+        "Only the public source snapshot and public manifest are mounted into the tool workspace",
+        "Run metadata and tool output are stored under reports or runs without modifying the source snapshot"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Define finding submission format",
+      "description": "As an evaluator, I need a structured report format for submitted findings so scoring can be consistent across tools.",
+      "acceptanceCriteria": [
+        "Add a JSON schema for submitted findings",
+        "Submitted findings include title, affected files, root cause, impact, proof sketch, and optional reproduction steps",
+        "Add CLI validation for submitted finding reports",
+        "Add at least one example accepted-style finding report with fake data only",
+        "Tests cover valid and invalid finding reports"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Score submitted findings against private oracle records",
+      "description": "As a benchmark maintainer, I need an evaluator that compares submitted findings to private oracle records without exposing the oracle to the evaluated tool.",
+      "acceptanceCriteria": [
+        "Add a score-report command that accepts a submitted finding report and a private oracle file",
+        "The scorer outputs accepted, partial, duplicate, false_positive, or out_of_scope statuses",
+        "Initial scoring may use deterministic keyword, location, and human-review fields rather than LLM judging",
+        "The scorer output includes enough explanation for maintainers without printing sensitive oracle fields by default",
+        "Tests cover accepted, partial, and false-positive examples using fake oracle data"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Add private candidate research workflow",
+      "description": "As a curator, I need a safe workflow for tracking candidate incidents, audit findings, source references, vulnerable commits, and verification status without committing answers publicly.",
+      "acceptanceCriteria": [
+        "Document the private candidate research workflow and required verification steps",
+        "Add templates for ignored private candidate and oracle files",
+        "Ensure .gitignore prevents private candidate files, oracle files, and local research notes from being committed",
+        "Add a public fake candidate example that contains no real incident names or vulnerable commits",
+        "Run validation checks successfully"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Add benchmark leakage audit command",
+      "description": "As a maintainer, I need an automated leakage check that warns when challenge bundles contain names, URLs, Git metadata, exploit artifacts, or other answer clues.",
+      "acceptanceCriteria": [
+        "Add an audit-leakage command for source snapshots and archives",
+        "The command detects .git metadata, repository URLs, commit hashes, audit report filenames, incident keywords, addresses, and transaction hashes",
+        "The command supports a private denylist file that is never committed",
+        "The command produces a machine-readable report and a human-readable summary",
+        "Tests cover common leakage patterns"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Add end-to-end fake benchmark fixture",
+      "description": "As a developer, I need a complete fake vulnerable project fixture so the entire prepare, sanitize, bundle, run, submit, and score flow can be tested without real incident data.",
+      "acceptanceCriteria": [
+        "Add a tiny fake Solidity or Python project fixture with an intentionally simple vulnerability",
+        "Add fake public manifest, private oracle, and submitted report examples",
+        "Add an end-to-end test that exercises the core CLI flow without network access",
+        "The fixture contains no real protocol names, incident names, addresses, or vulnerable commits",
+        "Run the full test suite successfully"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Document operating model and security boundaries",
+      "description": "As a benchmark operator, I need clear documentation for safely creating, distributing, and evaluating challenge cases without leaking ground truth.",
+      "acceptanceCriteria": [
+        "Document the public repo, private curator repo, and generated artifact separation",
+        "Document how to run tools with network disabled and oracle files withheld",
+        "Document which case classes are high quality, low quality, or special handling such as compiler bugs",
+        "Document curator review checklist before publishing any challenge bundle",
+        "Docs link to the relevant CLI commands and schemas"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
