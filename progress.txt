@@ -2,6 +2,7 @@
 ## Codebase Patterns
 - Python CLI code uses a `src/sol_audit_challenges/` package layout with Typer commands exposed through the `sol-audit-challenges` console script in `pyproject.toml`.
 - Use `.venv/bin/python -m pytest` after installing `.[dev]` locally to run the pytest suite against the editable package.
+- JSON schema validation lives in `src/sol_audit_challenges/validation.py`; CLI validation commands should report both the input file path and a `#/...` schema location for failures.
 
 Started: Thu Jun  4 14:24:50 CEST 2026
 ---
@@ -12,4 +13,12 @@ Started: Thu Jun  4 14:24:50 CEST 2026
   - Patterns discovered: CLI commands should be added under `src/sol_audit_challenges/cli.py`; the console script is configured in `pyproject.toml`.
   - Gotchas encountered: Typer collapses a single-command app unless an explicit callback is present, so keep the root callback when adding subcommands.
   - Useful context: Install with `python -m pip install -e ".[dev]"` before running `.venv/bin/python -m pytest`.
+---
+## 2026-06-04 14:46:39 CEST - US-002
+- Implemented public challenge manifest and private oracle validation commands backed by the existing JSON schemas.
+- Files changed: `src/sol_audit_challenges/cli.py`, `src/sol_audit_challenges/validation.py`, `tests/test_cli.py`, `README.md`, `prd.json`, `progress.txt`, `AGENTS.md`.
+- **Learnings for future iterations:**
+  - Patterns discovered: Keep schema validation logic in `src/sol_audit_challenges/validation.py` and call it from thin Typer commands.
+  - Gotchas encountered: Validation failures should include the user-provided file path and a JSON Schema path like `#/properties/id/pattern`.
+  - Useful context: The public manifest example at `examples/challenge-manifest/case-0000.public.json` is valid and can be reused in CLI tests.
 ---

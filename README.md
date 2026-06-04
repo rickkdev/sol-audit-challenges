@@ -29,6 +29,8 @@ in place of `python3.12`.
 ```bash
 sol-audit-challenges --help
 sol-audit-challenges version
+sol-audit-challenges validate-public examples/challenge-manifest/case-0000.public.json
+sol-audit-challenges validate-private path/to/case-0000.private.json
 ```
 
 During development, the module can also be run directly after installation:
