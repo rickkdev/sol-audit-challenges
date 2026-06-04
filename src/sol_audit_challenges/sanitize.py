@@ -70,9 +70,17 @@ class ReplacementRule:
 
 
 @dataclass(frozen=True)
+class RenameRule:
+    label: str
+    from_path: str
+    to_path: str
+
+
+@dataclass(frozen=True)
 class SanitizerConfig:
     remove_patterns: tuple[str, ...]
     replacements: tuple[ReplacementRule, ...]
+    renames: tuple[RenameRule, ...]
 
 
 @dataclass(frozen=True)
@@ -81,6 +89,7 @@ class SanitizedCase:
     output_dir: Path
     report_path: Path
     removed_files: tuple[str, ...]
+    renamed_files: tuple[dict[str, str], ...]
 
 
 def sanitize_case(
@@ -104,12 +113,14 @@ def sanitize_case(
 
     removed_files = _copy_sanitized_tree(source_dir, output_dir, config.remove_patterns)
     replacement_report = _apply_replacements(output_dir, config.replacements)
+    rename_report = _apply_renames(output_dir, config.renames)
 
     report = {
         "source_dir": str(source_dir),
         "output_dir": str(output_dir),
         "removed_files": removed_files,
         "replacements": replacement_report,
+        "renames": rename_report,
     }
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
@@ -119,15 +130,17 @@ def sanitize_case(
         output_dir=output_dir,
         report_path=report_path,
         removed_files=tuple(removed_files),
+        renamed_files=tuple(rename_report),
     )
 
 
 def load_sanitizer_config(config_path: Path | None) -> SanitizerConfig:
     remove_patterns = list(DEFAULT_REMOVE_PATTERNS)
     replacements: list[ReplacementRule] = []
+    renames: list[RenameRule] = []
 
     if config_path is None:
-        return SanitizerConfig(tuple(remove_patterns), tuple(replacements))
+        return SanitizerConfig(tuple(remove_patterns), tuple(replacements), tuple(renames))
 
     try:
         raw = json.loads(config_path.read_text(encoding="utf-8"))
@@ -164,7 +177,25 @@ def load_sanitizer_config(config_path: Path | None) -> SanitizerConfig:
             raise SanitizeCaseError(f"replacement rule {index} find value cannot be empty")
         replacements.append(ReplacementRule(label=label, find=find, replace=replace))
 
-    return SanitizerConfig(tuple(remove_patterns), tuple(replacements))
+    configured_renames = raw.get("rename", [])
+    if not isinstance(configured_renames, list):
+        raise SanitizeCaseError("sanitizer config rename must be an array")
+
+    for index, item in enumerate(configured_renames):
+        if not isinstance(item, dict):
+            raise SanitizeCaseError(f"rename rule {index} must be an object")
+        label = item.get("label")
+        from_path = item.get("from")
+        to_path = item.get("to")
+        if not all(isinstance(value, str) for value in (label, from_path, to_path)):
+            raise SanitizeCaseError(f"rename rule {index} requires string label, from, and to")
+        _validate_relative_rename_path(from_path, f"rename rule {index} from")
+        _validate_relative_rename_path(to_path, f"rename rule {index} to")
+        if from_path == to_path:
+            raise SanitizeCaseError(f"rename rule {index} from and to paths must differ")
+        renames.append(RenameRule(label=label, from_path=from_path, to_path=to_path))
+
+    return SanitizerConfig(tuple(remove_patterns), tuple(replacements), tuple(renames))
 
 
 def _copy_sanitized_tree(
@@ -236,6 +267,44 @@ def _apply_replacements(
                 )
 
     return replacement_report
+
+
+def _apply_renames(output_dir: Path, renames: tuple[RenameRule, ...]) -> list[dict[str, str]]:
+    rename_report: list[dict[str, str]] = []
+
+    for index, rule in enumerate(renames):
+        source_path = output_dir / rule.from_path
+        target_path = output_dir / rule.to_path
+
+        if not source_path.exists():
+            raise SanitizeCaseError(
+                f"rename rule {index} source does not exist: {rule.from_path}"
+            )
+        if source_path.is_dir():
+            raise SanitizeCaseError(
+                f"rename rule {index} source must be a file: {rule.from_path}"
+            )
+        if target_path.exists():
+            raise SanitizeCaseError(
+                f"rename rule {index} target already exists: {rule.to_path}"
+            )
+
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.rename(target_path)
+        rename_report.append(
+            {"label": rule.label, "from": rule.from_path, "to": rule.to_path}
+        )
+
+    return rename_report
+
+
+def _validate_relative_rename_path(path: str, field: str) -> None:
+    if path == "":
+        raise SanitizeCaseError(f"{field} path cannot be empty")
+    normalized = path.replace("\\", "/")
+    candidate = Path(normalized)
+    if candidate.is_absolute() or any(part == ".." for part in candidate.parts):
+        raise SanitizeCaseError(f"{field} path must be relative and stay within output")
 
 
 def _should_remove(relative_path: str, remove_patterns: tuple[str, ...]) -> bool:

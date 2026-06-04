@@ -312,6 +312,58 @@ def test_sanitize_case_applies_replacements_without_reporting_secrets(
     ]
 
 
+def test_sanitize_case_applies_configured_file_renames(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    (source / "src").mkdir(parents=True)
+    (source / "src" / "RealProtocol.sol").write_text(
+        'import "./ExampleProtocol.sol";\ncontract ExampleProtocol {}\n',
+        encoding="utf-8",
+    )
+    config = tmp_path / "sanitize.json"
+    write_json(
+        config,
+        {
+            "rename": [
+                {
+                    "label": "main_contract",
+                    "from": "src/RealProtocol.sol",
+                    "to": "src/ExampleProtocol.sol",
+                }
+            ]
+        },
+    )
+
+    output = tmp_path / "sanitized"
+    report = tmp_path / "public-report.json"
+    result = runner.invoke(
+        app,
+        [
+            "sanitize-case",
+            "--source-dir",
+            str(source),
+            "--output-dir",
+            str(output),
+            "--config",
+            str(config),
+            "--report",
+            str(report),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert not (output / "src" / "RealProtocol.sol").exists()
+    assert (output / "src" / "ExampleProtocol.sol").exists()
+
+    report_data = json.loads(report.read_text(encoding="utf-8"))
+    assert report_data["renames"] == [
+        {
+            "label": "main_contract",
+            "from": "src/RealProtocol.sol",
+            "to": "src/ExampleProtocol.sol",
+        }
+    ]
+
+
 def test_bundle_case_creates_deterministic_archive_and_manifest(
     tmp_path: Path,
 ) -> None:
