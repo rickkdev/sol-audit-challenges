@@ -31,6 +31,7 @@ sol-audit-challenges --help
 sol-audit-challenges version
 sol-audit-challenges validate-public examples/challenge-manifest/case-0000.public.json
 sol-audit-challenges validate-private path/to/case-0000.private.json
+sol-audit-challenges validate-report examples/submitted-reports/case-0000.report.json
 sol-audit-challenges prepare-case --repo path/to/repo --commit abcdef1 --case-id case-0001 --output-dir work/cases
 sol-audit-challenges sanitize-case --source-dir work/cases/public/case-0001/source --output-dir work/sanitized/case-0001/source --config sanitize.json
 sol-audit-challenges bundle-case --source-dir work/sanitized/case-0001/source --case-id case-0001 --output-dir work/public
@@ -56,6 +57,17 @@ python -m pytest
 - `schemas/` - JSON schemas for public manifests and private oracle records
 - `examples/` - fake public examples safe to commit
 - `docs/` - benchmark design and operator documentation
+
+## Submitted Finding Reports
+
+Tool outputs are submitted as JSON reports validated by
+`schemas/submitted-report.schema.json`. A report names the case id and includes
+one or more findings. Each finding must include a title, affected files, root
+cause, impact, and proof sketch; reproduction steps are optional.
+
+```bash
+sol-audit-challenges validate-report examples/submitted-reports/case-0000.report.json
+```
 
 ## Preparing Cases
 

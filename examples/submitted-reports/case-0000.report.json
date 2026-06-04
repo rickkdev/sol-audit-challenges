@@ -1,0 +1,28 @@
+{
+  "case_id": "case-0000",
+  "tool": {
+    "name": "fake-static-reviewer",
+    "version": "0.0.0",
+    "run_id": "fake-run-0000"
+  },
+  "findings": [
+    {
+      "title": "Unchecked internal balance update permits fake double spend",
+      "affected_files": [
+        {
+          "path": "source/src/FakeVault.sol",
+          "line": 42,
+          "symbol": "withdraw"
+        }
+      ],
+      "root_cause": "The fake vault updates an account balance after a simulated external transfer instead of before it.",
+      "impact": "A caller in this synthetic example can repeat the withdrawal path and drain fake accounting balances.",
+      "proof_sketch": "Call deposit once, invoke withdraw through the fake callback path twice, and observe the stored balance remains available for the second withdrawal.",
+      "reproduction_steps": [
+        "Deploy the fake vault fixture.",
+        "Deposit a synthetic balance for the test account.",
+        "Trigger the callback path during withdrawal and repeat the call."
+      ]
+    }
+  ]
+}

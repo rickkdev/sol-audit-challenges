@@ -110,6 +110,40 @@ def test_validate_private_oracle_reports_schema_path(tmp_path: Path) -> None:
     assert "schema: #/" in result.stderr
 
 
+def test_validate_report_accepts_valid_file() -> None:
+    result = runner.invoke(
+        app, ["validate-report", "examples/submitted-reports/case-0000.report.json"]
+    )
+
+    assert result.exit_code == 0
+    assert "Valid submitted report" in result.stdout
+
+
+def test_validate_report_reports_schema_path(tmp_path: Path) -> None:
+    report = tmp_path / "invalid.report.json"
+    write_json(
+        report,
+        {
+            "case_id": "case-0000",
+            "findings": [
+                {
+                    "title": "Fake issue",
+                    "affected_files": [{"path": "source/src/FakeVault.sol"}],
+                    "root_cause": "Fake root cause",
+                    "impact": "Fake impact",
+                }
+            ],
+        },
+    )
+
+    result = runner.invoke(app, ["validate-report", str(report)])
+
+    assert result.exit_code == 1
+    assert str(report) in result.stderr
+    assert "proof_sketch" in result.stderr
+    assert "schema: #/" in result.stderr
+
+
 def test_prepare_case_exports_requested_commit_without_git_metadata(
     tmp_path: Path,
 ) -> None:

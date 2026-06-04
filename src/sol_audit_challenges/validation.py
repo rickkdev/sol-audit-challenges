@@ -38,6 +38,11 @@ def validate_private_oracle(path: Path) -> None:
     validate_json_file(path, SCHEMA_DIR / "private-oracle.schema.json")
 
 
+def validate_submitted_report(path: Path) -> None:
+    """Validate a submitted finding report."""
+    validate_json_file(path, SCHEMA_DIR / "submitted-report.schema.json")
+
+
 def validate_json_file(path: Path, schema_path: Path) -> None:
     instance = _load_json(path, path)
     schema = _load_json(schema_path, schema_path)

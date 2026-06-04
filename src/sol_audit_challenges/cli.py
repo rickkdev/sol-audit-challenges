@@ -14,6 +14,7 @@ from sol_audit_challenges.validation import (
     ManifestValidationError,
     validate_private_oracle,
     validate_public_manifest,
+    validate_submitted_report,
 )
 
 app = typer.Typer(
@@ -59,6 +60,20 @@ def validate_private(
 ) -> None:
     """Validate a private oracle file."""
     _run_validation(oracle, validate_private_oracle, "private oracle")
+
+
+@app.command("validate-report")
+def validate_report(
+    report: Path = typer.Argument(
+        ...,
+        exists=True,
+        dir_okay=False,
+        readable=True,
+        help="Path to a submitted finding report JSON file.",
+    ),
+) -> None:
+    """Validate a submitted finding report."""
+    _run_validation(report, validate_submitted_report, "submitted report")
 
 
 @app.command("prepare-case")
