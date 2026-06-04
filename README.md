@@ -36,6 +36,7 @@ sol-audit-challenges prepare-case --repo path/to/repo --commit abcdef1 --case-id
 sol-audit-challenges sanitize-case --source-dir work/cases/public/case-0001/source --output-dir work/sanitized/case-0001/source --config sanitize.json
 sol-audit-challenges bundle-case --source-dir work/sanitized/case-0001/source --case-id case-0001 --output-dir work/public
 sol-audit-challenges run-case --bundle work/public/bundles/case-0001.tar.gz --manifest work/public/case-0001.public.json --command "python -m tool_under_test source" --output-dir work/reports
+sol-audit-challenges score-report --report work/reports/case-0001.report.json --oracle work/private/case-0001.private.json --output work/reports/case-0001.score.json
 ```
 
 During development, the module can also be run directly after installation:
@@ -147,3 +148,21 @@ sol-audit-challenges run-case \
   --mode docker \
   --docker-image python:3.12-slim
 ```
+
+## Scoring Reports
+
+`score-report` compares a submitted finding report to a private oracle with
+deterministic location and keyword matching. Results are written as JSON with
+one status per submitted finding: `accepted`, `partial`, `duplicate`,
+`false_positive`, or `out_of_scope`.
+
+```bash
+sol-audit-challenges score-report \
+  --report work/reports/case-0001.report.json \
+  --oracle work/private/case-0001.private.json \
+  --output work/reports/case-0001.score.json
+```
+
+The score output is intended for maintainers. It includes status explanations
+and matching signals, but it does not print private oracle origin links,
+sources, or raw accepted-finding text by default.

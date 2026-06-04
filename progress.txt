@@ -8,6 +8,7 @@
 - Bundling lives in `src/sol_audit_challenges/bundle.py`; public archives are deterministic `tar.gz` files under `bundles/<case-id>.tar.gz`, contain files below a `source/` prefix, and update public manifests with relative package paths plus SHA-256 checksums.
 - Running lives in `src/sol_audit_challenges/run.py`; `run-case` validates bundle checksums, exposes only `source/` and `public-manifest.json` in the tool workspace, and writes persistent run artifacts under `<output-dir>/runs/<case-id>/<run-id>/`.
 - Submitted finding report validation uses `schemas/submitted-report.schema.json` and the `validate-report` CLI command; committed examples should stay fake and live under `examples/submitted-reports/`.
+- Scoring lives in `src/sol_audit_challenges/score.py`; `score-report` uses deterministic location and keyword signals and should not print raw private oracle origin/sources or accepted-finding text by default.
 
 Started: Thu Jun  4 14:24:50 CEST 2026
 ---
@@ -66,4 +67,12 @@ Started: Thu Jun  4 14:24:50 CEST 2026
   - Patterns discovered: Submitted report validation follows the same thin Typer command plus schema helper pattern as public manifest and private oracle validation.
   - Gotchas encountered: The submitted report example must use fake data only because committed reports are part of the public benchmark surface.
   - Useful context: Findings require `title`, `affected_files`, `root_cause`, `impact`, and `proof_sketch`; `reproduction_steps` are optional.
+---
+## 2026-06-04 15:06:44 CEST - US-008
+- Implemented `score-report` for deterministic scoring of submitted finding reports against private oracle records, including accepted, partial, duplicate, false-positive, and out-of-scope statuses.
+- Files changed: `src/sol_audit_challenges/score.py`, `src/sol_audit_challenges/cli.py`, `tests/test_cli.py`, `README.md`, `prd.json`, `progress.txt`, `AGENTS.md`.
+- **Learnings for future iterations:**
+  - Patterns discovered: Keep scoring behavior in `src/sol_audit_challenges/score.py` and keep the Typer command focused on option parsing, error handling, and concise status output.
+  - Gotchas encountered: Scoring output should include maintainer-useful signals but avoid raw private oracle accepted-finding text, origin links, and sources by default.
+  - Useful context: The initial scorer is deterministic and conservative, combining normalized source paths, nearby lines, symbols, and keyword overlap for human-review-friendly status decisions.
 ---

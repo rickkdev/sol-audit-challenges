@@ -10,6 +10,7 @@ from sol_audit_challenges.bundle import BundleCaseError, bundle_case
 from sol_audit_challenges.prepare import PrepareCaseError, prepare_case
 from sol_audit_challenges.run import RunCaseError, run_case
 from sol_audit_challenges.sanitize import SanitizeCaseError, sanitize_case
+from sol_audit_challenges.score import ScoreReportError, score_report
 from sol_audit_challenges.validation import (
     ManifestValidationError,
     validate_private_oracle,
@@ -277,6 +278,47 @@ def run_case_command(
     typer.echo(f"Run directory: {result.run_dir}")
     typer.echo(f"Metadata: {result.metadata_path}")
     typer.echo(f"Return code: {result.return_code}")
+
+
+@app.command("score-report")
+def score_report_command(
+    report: Path = typer.Option(
+        ...,
+        "--report",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+        help="Submitted finding report JSON file to score.",
+    ),
+    oracle: Path = typer.Option(
+        ...,
+        "--oracle",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+        help="Private oracle JSON file withheld from evaluated tools.",
+    ),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        dir_okay=False,
+        help="Score output JSON path. Defaults next to the submitted report.",
+    ),
+) -> None:
+    """Score a submitted finding report against a private oracle."""
+    try:
+        result = score_report(report, oracle, output)
+    except ScoreReportError as exc:
+        typer.secho(f"Score failed: {exc}", err=True, fg=typer.colors.RED)
+        raise typer.Exit(code=1) from exc
+
+    typer.echo(f"Scored {result.case_id}")
+    typer.echo(f"Score output: {result.output_path}")
+    for finding in result.results:
+        typer.echo(
+            f"Finding {finding['finding_index']}: "
+            f"{finding['status']} - {finding['title']}"
+        )
 
 
 def _run_validation(path: Path, validator: Callable[[Path], None], label: str) -> None:

@@ -530,6 +530,160 @@ def test_run_case_rejects_bundle_checksum_mismatch(tmp_path: Path) -> None:
     assert not (tmp_path / "reports" / "runs").exists()
 
 
+def test_score_report_scores_findings_without_printing_oracle_fields(
+    tmp_path: Path,
+) -> None:
+    oracle = tmp_path / "case-0009.private.json"
+    write_json(oracle, fake_oracle("case-0009"))
+    report = tmp_path / "case-0009.report.json"
+    write_json(
+        report,
+        {
+            "case_id": "case-0009",
+            "findings": [
+                fake_finding(
+                    "Accepted fake withdrawal issue",
+                    "source/src/FakeVault.sol",
+                    root_cause="Balance is updated after an external call in withdraw.",
+                    impact="Repeated withdrawals can drain the fake vault balance.",
+                    proof_sketch="The attacker reenters withdraw before balance accounting changes.",
+                    line=42,
+                    symbol="withdraw",
+                ),
+                fake_finding(
+                    "Partial fake vault issue",
+                    "source/src/FakeVault.sol",
+                    root_cause="The implementation has confusing accounting.",
+                    impact="Funds may be affected.",
+                    proof_sketch="Maintainer review is needed.",
+                ),
+                fake_finding(
+                    "Unrelated fake owner issue",
+                    "source/src/Admin.sol",
+                    root_cause="Owner can change settings.",
+                    impact="Configuration may change.",
+                    proof_sketch="The owner path is privileged.",
+                ),
+            ],
+        },
+    )
+    output = tmp_path / "score.json"
+
+    result = runner.invoke(
+        app,
+        [
+            "score-report",
+            "--report",
+            str(report),
+            "--oracle",
+            str(oracle),
+            "--output",
+            str(output),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Finding 0: accepted" in result.stdout
+    assert "Finding 1: partial" in result.stdout
+    assert "Finding 2: false_positive" in result.stdout
+    assert "Private fake summary" not in result.stdout
+    assert "https://example.invalid/private/source" not in result.stdout
+
+    score = json.loads(output.read_text(encoding="utf-8"))
+    assert [finding["status"] for finding in score["results"]] == [
+        "accepted",
+        "partial",
+        "false_positive",
+    ]
+    assert score["summary"] == {
+        "accepted": 1,
+        "partial": 1,
+        "duplicate": 0,
+        "false_positive": 1,
+        "out_of_scope": 0,
+    }
+    score_text = output.read_text(encoding="utf-8")
+    assert "Private fake summary" not in score_text
+    assert "https://example.invalid/private/source" not in score_text
+
+
+def test_score_report_marks_duplicate_matches(tmp_path: Path) -> None:
+    oracle = tmp_path / "case-0010.private.json"
+    write_json(oracle, fake_oracle("case-0010"))
+    report = tmp_path / "case-0010.report.json"
+    matching = fake_finding(
+        "Fake reentrancy match",
+        "src/FakeVault.sol",
+        root_cause="External call before balance accounting enables reentrancy.",
+        impact="Repeated withdraw calls can drain funds from the fake vault.",
+        proof_sketch="A callback reenters withdraw before state is updated.",
+        line=43,
+        symbol="withdraw",
+    )
+    write_json(
+        report,
+        {
+            "case_id": "case-0010",
+            "findings": [matching, {**matching, "title": "Same fake bug again"}],
+        },
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "score-report",
+            "--report",
+            str(report),
+            "--oracle",
+            str(oracle),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    output = report.with_suffix(".score.json")
+    score = json.loads(output.read_text(encoding="utf-8"))
+    assert [finding["status"] for finding in score["results"]] == [
+        "accepted",
+        "duplicate",
+    ]
+
+
+def test_score_report_marks_case_mismatch_out_of_scope(tmp_path: Path) -> None:
+    oracle = tmp_path / "case-0011.private.json"
+    write_json(oracle, fake_oracle("case-0011"))
+    report = tmp_path / "case-0012.report.json"
+    write_json(
+        report,
+        {
+            "case_id": "case-0012",
+            "findings": [
+                fake_finding(
+                    "Mismatched fake finding",
+                    "src/FakeVault.sol",
+                    root_cause="External call before accounting.",
+                    impact="Funds can drain.",
+                    proof_sketch="Reenter withdraw.",
+                )
+            ],
+        },
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "score-report",
+            "--report",
+            str(report),
+            "--oracle",
+            str(oracle),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    score = json.loads(report.with_suffix(".score.json").read_text(encoding="utf-8"))
+    assert score["results"][0]["status"] == "out_of_scope"
+
+
 def write_json(path: Path, value: object) -> None:
     path.write_text(json.dumps(value), encoding="utf-8")
 
@@ -546,3 +700,44 @@ def run_git(repo: Path, *args: str) -> str:
         text=True,
     )
     return result.stdout
+
+
+def fake_oracle(case_id: str) -> dict[str, object]:
+    return {
+        "id": case_id,
+        "origin": {"repository": "https://example.invalid/private/repo"},
+        "vulnerable_commit": "abcdef1",
+        "accepted_finding": {
+            "summary": "Private fake summary about a reentrant withdrawal drain",
+            "root_cause": "The withdraw function performs an external call before updating balance accounting.",
+            "impact": "An attacker can reenter withdraw and drain vault funds repeatedly.",
+            "locations": [
+                {"path": "src/FakeVault.sol", "line": 42, "symbol": "withdraw"}
+            ],
+        },
+        "sources": ["https://example.invalid/private/source"],
+    }
+
+
+def fake_finding(
+    title: str,
+    path: str,
+    *,
+    root_cause: str,
+    impact: str,
+    proof_sketch: str,
+    line: int | None = None,
+    symbol: str | None = None,
+) -> dict[str, object]:
+    location: dict[str, object] = {"path": path}
+    if line is not None:
+        location["line"] = line
+    if symbol is not None:
+        location["symbol"] = symbol
+    return {
+        "title": title,
+        "affected_files": [location],
+        "root_cause": root_cause,
+        "impact": impact,
+        "proof_sketch": proof_sketch,
+    }
