@@ -1,0 +1,18 @@
+# Generated challenge packages
+/bundles/
+/worktrees/
+/snapshots/
+
+# Private benchmark truth. Never commit these files.
+/ground-truth/
+*.private.yaml
+*.private.json
+*.oracle.yaml
+*.oracle.json
+
+# Local research notes may contain incident names and vulnerable commits.
+/research/local/
+
+# Tool output
+/reports/
+/runs/

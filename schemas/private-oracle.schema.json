@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/sol-audit-challenges/private-oracle.schema.json",
+  "title": "PrivateOracle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "origin",
+    "vulnerable_commit",
+    "accepted_finding",
+    "sources"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^case-[0-9]{4}$"
+    },
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository"],
+      "properties": {
+        "repository": { "type": "string" },
+        "protocol": { "type": "string" },
+        "incident": { "type": "string" }
+      }
+    },
+    "vulnerable_commit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{7,40}$"
+    },
+    "fixed_commit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{7,40}$"
+    },
+    "accepted_finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary", "root_cause", "impact"],
+      "properties": {
+        "summary": { "type": "string" },
+        "root_cause": { "type": "string" },
+        "impact": { "type": "string" },
+        "locations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path"],
+            "properties": {
+              "path": { "type": "string" },
+              "symbol": { "type": "string" },
+              "line": { "type": "integer", "minimum": 1 }
+            }
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "enum": ["human", "test", "hybrid"] },
+        "command": { "type": "string" }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    }
+  }
+}
