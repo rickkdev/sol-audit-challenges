@@ -150,7 +150,7 @@
         "Tests cover common leakage patterns"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

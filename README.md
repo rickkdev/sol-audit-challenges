@@ -35,6 +35,7 @@ sol-audit-challenges validate-report examples/submitted-reports/case-0000.report
 sol-audit-challenges prepare-case --repo path/to/repo --commit abcdef1 --case-id case-0001 --output-dir work/cases
 sol-audit-challenges sanitize-case --source-dir work/cases/public/case-0001/source --output-dir work/sanitized/case-0001/source --config sanitize.json
 sol-audit-challenges bundle-case --source-dir work/sanitized/case-0001/source --case-id case-0001 --output-dir work/public
+sol-audit-challenges audit-leakage --target work/public/bundles/case-0001.tar.gz --denylist research/local/case-0001.denylist.json --output work/reports/case-0001.leakage.json
 sol-audit-challenges run-case --bundle work/public/bundles/case-0001.tar.gz --manifest work/public/case-0001.public.json --command "python -m tool_under_test source" --output-dir work/reports
 sol-audit-challenges score-report --report work/reports/case-0001.report.json --oracle work/private/case-0001.private.json --output work/reports/case-0001.score.json
 ```
@@ -126,6 +127,38 @@ The archive contains the snapshot under a `source/` prefix and excludes private
 oracle files, local research notes, `.git` metadata, generated reports, and run
 outputs. Pass `--manifest path/to/case-0001.public.json` to update an existing
 public manifest while preserving fields such as `prompt` and `build`.
+
+## Auditing Leakage
+
+`audit-leakage` scans a source snapshot directory, single file, or tar archive
+for answer clues before publishing. It detects `.git` metadata paths,
+repository URLs, 40-character commit hashes, audit/incident/exploit filenames,
+incident keywords, Ethereum addresses, and transaction hashes. The command
+writes a machine-readable JSON report and prints a short human-readable summary.
+
+Pass `--denylist` with a private JSON file for case-specific protocol names,
+incident names, repository names, addresses, or other terms:
+
+```json
+{
+  "terms": [
+    {
+      "label": "protocol_name",
+      "value": "RealProtocol"
+    }
+  ]
+}
+```
+
+Private denylist files should stay in ignored locations such as
+`research/local/` and may use the ignored `*.denylist.json` suffix.
+
+```bash
+sol-audit-challenges audit-leakage \
+  --target work/public/bundles/case-0001.tar.gz \
+  --denylist research/local/case-0001.denylist.json \
+  --output work/reports/case-0001.leakage.json
+```
 
 ## Running Cases
 

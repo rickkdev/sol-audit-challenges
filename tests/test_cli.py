@@ -710,6 +710,135 @@ def test_score_report_marks_case_mismatch_out_of_scope(tmp_path: Path) -> None:
     assert score["results"][0]["status"] == "out_of_scope"
 
 
+def test_audit_leakage_reports_common_directory_clues(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    (source / ".git").mkdir(parents=True)
+    (source / ".git" / "config").write_text(
+        "[remote \"origin\"]\nurl = https://github.com/example/private-case.git\n",
+        encoding="utf-8",
+    )
+    (source / "src").mkdir()
+    (source / "src" / "FakeVault.sol").write_text(
+        "\n".join(
+            [
+                "contract FakeVault {",
+                "  bytes32 constant FIXED_COMMIT = hex\"0123456789abcdef0123456789abcdef01234567\";",
+                "  address constant TARGET = 0x1234567890abcdef1234567890abcdef12345678;",
+                "  bytes32 constant TX = 0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd;",
+                "}",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (source / "incident-postmortem.md").write_text(
+        "Fake incident notes mention SecretProtocol.", encoding="utf-8"
+    )
+    denylist = tmp_path / "case-0013.denylist.json"
+    write_json(
+        denylist,
+        {"terms": [{"label": "protocol_name", "value": "SecretProtocol"}]},
+    )
+    output = tmp_path / "leakage.json"
+
+    result = runner.invoke(
+        app,
+        [
+            "audit-leakage",
+            "--target",
+            str(source),
+            "--denylist",
+            str(denylist),
+            "--output",
+            str(output),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Findings:" in result.stdout
+    report = json.loads(output.read_text(encoding="utf-8"))
+    rules = {finding["rule"] for finding in report["findings"]}
+    assert {
+        "git_metadata",
+        "repository_url",
+        "commit_hash",
+        "address",
+        "transaction_hash",
+        "incident_filename",
+        "incident_keyword",
+        "denylist",
+    }.issubset(rules)
+    assert report["summary"]["denylist"] == 1
+
+
+def test_audit_leakage_reads_public_archives(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    (source / "src").mkdir(parents=True)
+    (source / "src" / "Example.sol").write_text("contract Example {}\n", encoding="utf-8")
+    public = tmp_path / "public"
+    bundle_result = runner.invoke(
+        app,
+        [
+            "bundle-case",
+            "--source-dir",
+            str(source),
+            "--case-id",
+            "case-0014",
+            "--output-dir",
+            str(public),
+        ],
+    )
+    assert bundle_result.exit_code == 0, bundle_result.output
+    archive = public / "bundles" / "case-0014.tar.gz"
+    output = tmp_path / "archive-leakage.json"
+
+    result = runner.invoke(
+        app,
+        [
+            "audit-leakage",
+            "--target",
+            str(archive),
+            "--output",
+            str(output),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["target_type"] == "archive"
+    assert report["findings"] == []
+
+
+def test_audit_leakage_detects_archive_clues_without_extracting(tmp_path: Path) -> None:
+    archive = tmp_path / "leaky.tar.gz"
+    leaky_file = tmp_path / "audit-report.md"
+    leaky_file.write_text(
+        "Exploit tx 0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+        encoding="utf-8",
+    )
+    with tarfile.open(archive, "w:gz") as package:
+        package.add(leaky_file, arcname="source/audit-report.md")
+        package.add(leaky_file, arcname="source/.git/config")
+    output = tmp_path / "leaky-report.json"
+
+    result = runner.invoke(
+        app,
+        [
+            "audit-leakage",
+            "--target",
+            str(archive),
+            "--output",
+            str(output),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    report = json.loads(output.read_text(encoding="utf-8"))
+    rules = {finding["rule"] for finding in report["findings"]}
+    assert {"audit_filename", "git_metadata", "transaction_hash", "incident_keyword"}.issubset(
+        rules
+    )
+
+
 def write_json(path: Path, value: object) -> None:
     path.write_text(json.dumps(value), encoding="utf-8")
 

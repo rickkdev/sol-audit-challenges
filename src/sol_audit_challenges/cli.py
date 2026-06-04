@@ -7,6 +7,7 @@ import typer
 
 from sol_audit_challenges import __version__
 from sol_audit_challenges.bundle import BundleCaseError, bundle_case
+from sol_audit_challenges.leakage import LeakageAuditError, audit_leakage
 from sol_audit_challenges.prepare import PrepareCaseError, prepare_case
 from sol_audit_challenges.run import RunCaseError, run_case
 from sol_audit_challenges.sanitize import SanitizeCaseError, sanitize_case
@@ -319,6 +320,48 @@ def score_report_command(
             f"Finding {finding['finding_index']}: "
             f"{finding['status']} - {finding['title']}"
         )
+
+
+@app.command("audit-leakage")
+def audit_leakage_command(
+    target: Path = typer.Option(
+        ...,
+        "--target",
+        exists=True,
+        readable=True,
+        help="Source snapshot directory, single file, or tar archive to audit.",
+    ),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        dir_okay=False,
+        help="Machine-readable leakage report path. Defaults next to the target.",
+    ),
+    denylist: Path | None = typer.Option(
+        None,
+        "--denylist",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+        help="Optional private JSON denylist of case-specific terms.",
+    ),
+) -> None:
+    """Audit public challenge artifacts for answer leakage clues."""
+    try:
+        result = audit_leakage(target=target, report_path=output, denylist_path=denylist)
+    except LeakageAuditError as exc:
+        typer.secho(f"Leakage audit failed: {exc}", err=True, fg=typer.colors.RED)
+        raise typer.Exit(code=1) from exc
+
+    typer.echo(f"Audited {result.target_type}: {result.target}")
+    typer.echo(f"Leakage report: {result.report_path}")
+    typer.echo(f"Findings: {len(result.findings)}")
+    summary: dict[str, int] = {}
+    for finding in result.findings:
+        rule = finding["rule"]
+        summary[rule] = summary.get(rule, 0) + 1
+    for rule, count in sorted(summary.items()):
+        typer.echo(f"- {rule}: {count}")
 
 
 def _run_validation(path: Path, validator: Callable[[Path], None], label: str) -> None:

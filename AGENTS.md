@@ -40,3 +40,4 @@ ralph run --max 20
 - Keep submitted finding report validation in `schemas/submitted-report.schema.json` plus the `validate-report` CLI command; public examples under `examples/submitted-reports/` must contain fake data only.
 - Keep deterministic scoring helpers in `src/sol_audit_challenges/score.py`; `score-report` outputs maintainer-facing statuses and signals without printing raw private oracle origin/sources or accepted-finding text by default.
 - Keep real candidate research and oracle data out of committed paths; use `templates/` as safe placeholders and copy them into ignored `research/local/` or `ground-truth/` paths before adding real incident names, repositories, commits, addresses, or sources.
+- Keep leakage auditing helpers in `src/sol_audit_challenges/leakage.py`; `audit-leakage` scans source directories, files, and tar archives, and private case-specific denylist files should stay ignored as `*.denylist.json` or under `research/local/`.
