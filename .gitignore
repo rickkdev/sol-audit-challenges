@@ -9,10 +9,27 @@
 *.private.json
 *.oracle.yaml
 *.oracle.json
+*.candidate.private.yaml
+*.candidate.private.json
+*.denylist.yaml
+*.denylist.json
 
 # Local research notes may contain incident names and vulnerable commits.
 /research/local/
+/research/private/
+local-research.*
 
 # Tool output
 /reports/
 /runs/
+
+# Python development
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+dist/
+build/
+*.egg-info/

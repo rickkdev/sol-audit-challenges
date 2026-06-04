@@ -1,0 +1,47 @@
+{
+  "case_id": "case-0000",
+  "status": "candidate",
+  "origin": {
+    "repository": "https://example.invalid/private/source-repo",
+    "protocol": "PrivateProtocolName",
+    "incident": "PrivateIncidentName"
+  },
+  "commits": {
+    "vulnerable": "abcdef1234567890abcdef1234567890abcdef12",
+    "fixed": "1234567890abcdef1234567890abcdef12345678"
+  },
+  "verification": {
+    "snapshot_reproducible": false,
+    "root_cause_identified": false,
+    "judgeable_without_web": false,
+    "notes": "Replace this placeholder in an ignored private file."
+  },
+  "sanitization": {
+    "remove_paths": [
+      "README.md",
+      "docs/",
+      "audits/",
+      "broadcast/",
+      "cache/",
+      "out/"
+    ],
+    "replace_strings": [
+      {
+        "label": "protocol_name",
+        "find": "PrivateProtocolName",
+        "replace": "ExampleProtocol"
+      },
+      {
+        "label": "incident_name",
+        "find": "PrivateIncidentName",
+        "replace": "ExampleIncident"
+      }
+    ]
+  },
+  "sources": [
+    "https://example.invalid/private/source-reference"
+  ],
+  "review_notes": [
+    "Keep real candidate files under research/local/ or another private repository."
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "case-0000",
+  "origin": {
+    "repository": "https://example.invalid/private/source-repo",
+    "protocol": "PrivateProtocolName",
+    "incident": "PrivateIncidentName"
+  },
+  "vulnerable_commit": "abcdef1234567890abcdef1234567890abcdef12",
+  "fixed_commit": "1234567890abcdef1234567890abcdef12345678",
+  "accepted_finding": {
+    "summary": "Private accepted finding summary.",
+    "root_cause": "Private root cause accepted by maintainers.",
+    "impact": "Private exploit impact accepted by maintainers.",
+    "locations": [
+      {
+        "path": "src/PrivateExample.sol",
+        "symbol": "privateFunction",
+        "line": 42
+      }
+    ]
+  },
+  "validation": {
+    "mode": "human",
+    "command": "Describe any private reproduction or review command here."
+  },
+  "sources": [
+    "https://example.invalid/private/source-reference"
+  ]
+}

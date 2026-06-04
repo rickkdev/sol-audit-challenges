@@ -1,0 +1,26 @@
+{
+  "case_id": "case-0100",
+  "tool": {
+    "name": "fake-local-tool",
+    "version": "0.0.0"
+  },
+  "findings": [
+    {
+      "title": "Fake vault reentrant withdrawal",
+      "affected_files": [
+        {
+          "path": "source/src/FakeVault.sol",
+          "line": 14,
+          "symbol": "withdraw"
+        }
+      ],
+      "root_cause": "The withdraw function performs an external call before decreasing the caller balance.",
+      "impact": "A caller can reenter withdraw and repeatedly drain fake vault funds before accounting changes.",
+      "proof_sketch": "Deposit once, call withdraw, and reenter from the receiver callback before the original balance decrement executes.",
+      "reproduction_steps": [
+        "Deploy the fake vault and deposit funds.",
+        "Withdraw through a contract that calls withdraw again from its receive hook."
+      ]
+    }
+  ]
+}

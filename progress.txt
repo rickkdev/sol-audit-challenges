@@ -1,3 +1,118 @@
 # Ralph Progress Log
+## Codebase Patterns
+- Python CLI code uses a `src/sol_audit_challenges/` package layout with Typer commands exposed through the `sol-audit-challenges` console script in `pyproject.toml`.
+- Use `.venv/bin/python -m pytest` after installing `.[dev]` locally to run the pytest suite against the editable package.
+- JSON schema validation lives in `src/sol_audit_challenges/validation.py`; CLI validation commands should report both the input file path and a `#/...` schema location for failures.
+- Prepared case outputs are split into `<output-dir>/public/<case-id>/source` for distributable source snapshots and `<output-dir>/private/` for draft oracle files.
+- Sanitization lives in `src/sol_audit_challenges/sanitize.py`; replacement reports should include labels, replacement values, counts, and file paths, but never the sensitive `find` strings from sanitizer config.
+- Bundling lives in `src/sol_audit_challenges/bundle.py`; public archives are deterministic `tar.gz` files under `bundles/<case-id>.tar.gz`, contain files below a `source/` prefix, and update public manifests with relative package paths plus SHA-256 checksums.
+- Running lives in `src/sol_audit_challenges/run.py`; `run-case` validates bundle checksums, exposes only `source/` and `public-manifest.json` in the tool workspace, and writes persistent run artifacts under `<output-dir>/runs/<case-id>/<run-id>/`.
+- Submitted finding report validation uses `schemas/submitted-report.schema.json` and the `validate-report` CLI command; committed examples should stay fake and live under `examples/submitted-reports/`.
+- Scoring lives in `src/sol_audit_challenges/score.py`; `score-report` uses deterministic location and keyword signals and should not print raw private oracle origin/sources or accepted-finding text by default.
+- Private candidate research and oracle data should stay in ignored `research/local/` or `ground-truth/` paths; committed `templates/` files are placeholders to copy before adding real source references, vulnerable commits, or incident identifiers.
+- Leakage auditing lives in `src/sol_audit_challenges/leakage.py`; `audit-leakage` scans source directories, files, and tar archives, with optional private JSON denylist terms kept in ignored paths such as `research/local/` or `*.denylist.json`.
+- Complete fake end-to-end benchmark fixtures should live under `examples/fixtures/`; committed fake oracle examples can use `.oracle.example.json` so they validate without conflicting with ignored real `*.private.json` or `*.oracle.json` paths.
+- Operator security-boundary guidance lives in `docs/operating-model.md`; keep private candidate intake details in `docs/private-research-workflow.md` and cross-link both from user-facing docs.
+
 Started: Thu Jun  4 14:24:50 CEST 2026
+---
+## 2026-06-04 14:44:03 CEST - US-001
+- Implemented a Python 3.12 CLI project skeleton with package metadata, Typer console entrypoint, version command, and pytest scaffolding.
+- Files changed: `pyproject.toml`, `src/sol_audit_challenges/__init__.py`, `src/sol_audit_challenges/cli.py`, `tests/test_cli.py`, `.gitignore`, `README.md`, `prd.json`, `progress.txt`, `AGENTS.md`.
+- **Learnings for future iterations:**
+  - Patterns discovered: CLI commands should be added under `src/sol_audit_challenges/cli.py`; the console script is configured in `pyproject.toml`.
+  - Gotchas encountered: Typer collapses a single-command app unless an explicit callback is present, so keep the root callback when adding subcommands.
+  - Useful context: Install with `python -m pip install -e ".[dev]"` before running `.venv/bin/python -m pytest`.
+---
+## 2026-06-04 14:46:39 CEST - US-002
+- Implemented public challenge manifest and private oracle validation commands backed by the existing JSON schemas.
+- Files changed: `src/sol_audit_challenges/cli.py`, `src/sol_audit_challenges/validation.py`, `tests/test_cli.py`, `README.md`, `prd.json`, `progress.txt`, `AGENTS.md`.
+- **Learnings for future iterations:**
+  - Patterns discovered: Keep schema validation logic in `src/sol_audit_challenges/validation.py` and call it from thin Typer commands.
+  - Gotchas encountered: Validation failures should include the user-provided file path and a JSON Schema path like `#/properties/id/pattern`.
+  - Useful context: The public manifest example at `examples/challenge-manifest/case-0000.public.json` is valid and can be reused in CLI tests.
+---
+## 2026-06-04 14:49:33 CEST - US-003
+- Implemented `prepare-case` to export a requested Git commit with `git archive`, write the clean source snapshot under the public case directory, and create a schema-valid draft private oracle outside the public tree.
+- Files changed: `src/sol_audit_challenges/prepare.py`, `src/sol_audit_challenges/cli.py`, `tests/test_cli.py`, `README.md`, `prd.json`, `progress.txt`, `AGENTS.md`.
+- **Learnings for future iterations:**
+  - Patterns discovered: Keep Git export behavior in a focused helper module and keep Typer commands thin.
+  - Gotchas encountered: Draft private oracle commits should be resolved to full hex SHAs so they satisfy `schemas/private-oracle.schema.json`.
+  - Useful context: Tests can create temporary local Git repositories and validate generated private oracle files through the CLI.
+---
+## 2026-06-04 14:52:57 CEST - US-004
+- Implemented `sanitize-case` with default removal rules for README/docs/audits/deployments/build artifacts/exploit clues, optional JSON-configured removals, configurable string replacement rules, and a public-safe sanitizer report.
+- Files changed: `src/sol_audit_challenges/sanitize.py`, `src/sol_audit_challenges/cli.py`, `tests/test_cli.py`, `README.md`, `prd.json`, `progress.txt`, `AGENTS.md`.
+- **Learnings for future iterations:**
+  - Patterns discovered: Keep sanitization behavior in `src/sol_audit_challenges/sanitize.py` and keep Typer commands as thin error-handling wrappers.
+  - Gotchas encountered: Root-level glob matching needs explicit patterns such as `README.*` and `docs/**`; `**/README.*` alone does not cover root files with `fnmatch`.
+  - Useful context: Sanitizer reports intentionally omit replacement `find` strings so public reports do not reveal protocol names, incident names, addresses, or transaction hashes from private config.
+---
+## 2026-06-04 14:56:41 CEST - US-005
+- Implemented `bundle-case` for deterministic public `tar.gz` archives, public manifest creation/updating, SHA-256 package checksums, and exclusion of private oracle files, local notes, `.git` metadata, reports, and run outputs.
+- Files changed: `src/sol_audit_challenges/bundle.py`, `src/sol_audit_challenges/cli.py`, `tests/test_cli.py`, `README.md`, `prd.json`, `progress.txt`, `AGENTS.md`.
+- **Learnings for future iterations:**
+  - Patterns discovered: Keep bundle/archive behavior in `src/sol_audit_challenges/bundle.py`; the Typer command should only translate options, errors, and output paths.
+  - Gotchas encountered: Deterministic gzip archives need both normalized tar member metadata and a fixed gzip `mtime`.
+  - Useful context: Bundle archives expose source files under `source/`, so future `run-case` extraction should expect that public workspace prefix.
+---
+## 2026-06-04 15:00:10 CEST - US-006
+- Implemented `run-case` to verify a public bundle checksum, extract the source snapshot into a temporary public-only workspace, run a configurable tool command, support Docker no-network mode, and persist run metadata plus stdout/stderr under `runs`.
+- Files changed: `src/sol_audit_challenges/run.py`, `src/sol_audit_challenges/cli.py`, `tests/test_cli.py`, `README.md`, `prd.json`, `progress.txt`, `AGENTS.md`.
+- **Learnings for future iterations:**
+  - Patterns discovered: Keep runner behavior in `src/sol_audit_challenges/run.py` and leave Typer command handling thin.
+  - Gotchas encountered: Local mode can limit workspace contents but cannot enforce OS-level network isolation; Docker mode uses `--network none` and a read-only public workspace mount for enforcement.
+  - Useful context: The tool workspace contains `source/` and `public-manifest.json`; durable run artifacts are written outside that workspace under `<output-dir>/runs/<case-id>/<run-id>/`.
+---
+## 2026-06-04 15:02:37 CEST - US-007
+- Implemented the submitted finding report schema, CLI validation command, fake accepted-style example report, README usage, and tests for valid and invalid reports.
+- Files changed: `schemas/submitted-report.schema.json`, `examples/submitted-reports/case-0000.report.json`, `src/sol_audit_challenges/validation.py`, `src/sol_audit_challenges/cli.py`, `tests/test_cli.py`, `README.md`, `prd.json`, `progress.txt`, `AGENTS.md`.
+- **Learnings for future iterations:**
+  - Patterns discovered: Submitted report validation follows the same thin Typer command plus schema helper pattern as public manifest and private oracle validation.
+  - Gotchas encountered: The submitted report example must use fake data only because committed reports are part of the public benchmark surface.
+  - Useful context: Findings require `title`, `affected_files`, `root_cause`, `impact`, and `proof_sketch`; `reproduction_steps` are optional.
+---
+## 2026-06-04 15:06:44 CEST - US-008
+- Implemented `score-report` for deterministic scoring of submitted finding reports against private oracle records, including accepted, partial, duplicate, false-positive, and out-of-scope statuses.
+- Files changed: `src/sol_audit_challenges/score.py`, `src/sol_audit_challenges/cli.py`, `tests/test_cli.py`, `README.md`, `prd.json`, `progress.txt`, `AGENTS.md`.
+- **Learnings for future iterations:**
+  - Patterns discovered: Keep scoring behavior in `src/sol_audit_challenges/score.py` and keep the Typer command focused on option parsing, error handling, and concise status output.
+  - Gotchas encountered: Scoring output should include maintainer-useful signals but avoid raw private oracle accepted-finding text, origin links, and sources by default.
+  - Useful context: The initial scorer is deterministic and conservative, combining normalized source paths, nearby lines, symbols, and keyword overlap for human-review-friendly status decisions.
+---
+## 2026-06-04 15:09:25 CEST - US-009
+- Documented the private candidate research workflow, verification steps, storage boundaries, and publishing checklist for maintaining private case data without committing answers publicly.
+- Added safe private candidate/oracle templates, a fake public candidate example, expanded ignore rules for private research artifacts, and a regression test for ignored private paths.
+- Files changed: `docs/private-research-workflow.md`, `docs/benchmark-design.md`, `templates/private-candidate.template.json`, `templates/private-oracle.template.json`, `examples/candidates/case-0000.candidate.public.json`, `.gitignore`, `README.md`, `tests/test_cli.py`, `prd.json`, `progress.txt`, `AGENTS.md`.
+- **Learnings for future iterations:**
+  - Patterns discovered: Keep committed research examples fake; copy templates into ignored `research/local/` or `ground-truth/` paths before adding real candidate or oracle data.
+  - Gotchas encountered: Template filenames must avoid ignored suffixes such as `*.private.json` so the safe placeholders can be committed.
+  - Useful context: `git check-ignore` is useful for testing that private candidate files, oracle files, and local research notes remain untracked by default.
+---
+## 2026-06-04 15:13:42 CEST - US-010
+- Implemented `audit-leakage` for source directories, files, and tar archives with detection for Git metadata, repository URLs, commit hashes, audit/incident/exploit clues, Ethereum addresses, transaction hashes, and optional private denylist terms.
+- Added machine-readable JSON leakage reports, human-readable CLI summaries, README usage, and regression tests for directory and archive scans.
+- Files changed: `src/sol_audit_challenges/leakage.py`, `src/sol_audit_challenges/cli.py`, `tests/test_cli.py`, `README.md`, `prd.json`, `progress.txt`, `AGENTS.md`.
+- **Learnings for future iterations:**
+  - Patterns discovered: Keep leakage scanning behavior in `src/sol_audit_challenges/leakage.py` and expose it through a thin Typer command.
+  - Gotchas encountered: Audit commands should warn and report findings without acting like validators; a finding is not a CLI failure.
+  - Useful context: Case-specific denylist files are private JSON and are already covered by ignored `*.denylist.json` paths.
+---
+## 2026-06-04 15:23:59 CEST - US-011
+- Added a complete fake Solidity vault fixture with a simple reentrant withdrawal issue and matching fake public manifest, private oracle example, and submitted report example.
+- Added an end-to-end pytest flow that creates a temporary git repo from the fixture, runs prepare, sanitize, bundle, run, validates public/private/report files, and scores the submitted report without network access.
+- Files changed: `examples/fixtures/fake-vault/src/FakeVault.sol`, `examples/fixtures/fake-vault/test/FakeVault.t.sol`, `examples/challenge-manifest/case-0100.public.json`, `examples/private-oracles/case-0100.oracle.example.json`, `examples/submitted-reports/case-0100.report.json`, `tests/test_cli.py`, `README.md`, `prd.json`, `progress.txt`, `AGENTS.md`.
+- **Learnings for future iterations:**
+  - Patterns discovered: Keep reusable fake benchmark fixtures under `examples/fixtures/` and keep their public manifests/reports in the existing `examples/` subdirectories.
+  - Gotchas encountered: Real `*.private.json` and `*.oracle.json` paths are ignored, so committed fake oracle examples should use a schema-valid but safe suffix such as `.oracle.example.json`.
+  - Useful context: E2E tests should copy tracked example manifests into a temporary directory before bundling because `bundle-case` updates manifest package checksums in place.
+---
+## 2026-06-04 15:22:35 CEST - US-012
+- Documented the operating model and security boundaries for public repo contents, private curator storage, generated artifacts, network isolation, oracle withholding, case quality classes, and publishing review.
+- Cross-linked the operating model from README and benchmark design docs so operators can find the runbook alongside private research guidance.
+- Files changed: `docs/operating-model.md`, `docs/benchmark-design.md`, `README.md`, `prd.json`, `progress.txt`, `AGENTS.md`.
+- **Learnings for future iterations:**
+  - Patterns discovered: Keep operator-facing security boundaries, case quality classes, and publishing checklists in `docs/operating-model.md`.
+  - Gotchas encountered: Private research workflow docs and operating-model docs overlap; keep candidate intake details in the former and evaluation/distribution boundaries in the latter.
+  - Useful context: Documentation stories still need the full pytest suite before updating PRD status and committing.
 ---
