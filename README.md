@@ -31,6 +31,7 @@ sol-audit-challenges --help
 sol-audit-challenges version
 sol-audit-challenges validate-public examples/challenge-manifest/case-0000.public.json
 sol-audit-challenges validate-private path/to/case-0000.private.json
+sol-audit-challenges prepare-case --repo path/to/repo --commit abcdef1 --case-id case-0001 --output-dir work/cases
 ```
 
 During development, the module can also be run directly after installation:
@@ -52,3 +53,11 @@ python -m pytest
 - `schemas/` - JSON schemas for public manifests and private oracle records
 - `examples/` - fake public examples safe to commit
 - `docs/` - benchmark design and operator documentation
+
+## Preparing Cases
+
+`prepare-case` exports the requested Git commit into
+`<output-dir>/public/<case-id>/source` using `git archive`, which omits Git
+history and repository metadata from the snapshot. It also writes a draft
+private oracle to `<output-dir>/private/<case-id>.private.json`; keep that
+private directory out of public challenge bundles.

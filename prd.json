@@ -45,7 +45,7 @@
         "Tests cover local fixture repository export and confirm .git metadata is absent"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

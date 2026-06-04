@@ -6,6 +6,7 @@ from typing import Callable
 import typer
 
 from sol_audit_challenges import __version__
+from sol_audit_challenges.prepare import PrepareCaseError, prepare_case
 from sol_audit_challenges.validation import (
     ManifestValidationError,
     validate_private_oracle,
@@ -55,6 +56,42 @@ def validate_private(
 ) -> None:
     """Validate a private oracle file."""
     _run_validation(oracle, validate_private_oracle, "private oracle")
+
+
+@app.command("prepare-case")
+def prepare_case_command(
+    repo: str = typer.Option(
+        ...,
+        "--repo",
+        help="Repository URL or local repository path to export.",
+    ),
+    commit: str = typer.Option(
+        ...,
+        "--commit",
+        help="Commit, tag, or ref to export.",
+    ),
+    case_id: str = typer.Option(
+        ...,
+        "--case-id",
+        help="Challenge case id, such as case-0001.",
+    ),
+    output_dir: Path = typer.Option(
+        ...,
+        "--output-dir",
+        file_okay=False,
+        help="Directory where public source and private oracle files are written.",
+    ),
+) -> None:
+    """Export a repository commit into a clean source snapshot."""
+    try:
+        prepared = prepare_case(repo, commit, case_id, output_dir)
+    except PrepareCaseError as exc:
+        typer.secho(f"Prepare failed: {exc}", err=True, fg=typer.colors.RED)
+        raise typer.Exit(code=1) from exc
+
+    typer.echo(f"Prepared {prepared.case_id} at {prepared.commit}")
+    typer.echo(f"Source snapshot: {prepared.source_dir}")
+    typer.echo(f"Draft private oracle: {prepared.private_oracle}")
 
 
 def _run_validation(path: Path, validator: Callable[[Path], None], label: str) -> None:

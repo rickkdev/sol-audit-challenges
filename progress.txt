@@ -3,6 +3,7 @@
 - Python CLI code uses a `src/sol_audit_challenges/` package layout with Typer commands exposed through the `sol-audit-challenges` console script in `pyproject.toml`.
 - Use `.venv/bin/python -m pytest` after installing `.[dev]` locally to run the pytest suite against the editable package.
 - JSON schema validation lives in `src/sol_audit_challenges/validation.py`; CLI validation commands should report both the input file path and a `#/...` schema location for failures.
+- Prepared case outputs are split into `<output-dir>/public/<case-id>/source` for distributable source snapshots and `<output-dir>/private/` for draft oracle files.
 
 Started: Thu Jun  4 14:24:50 CEST 2026
 ---
@@ -21,4 +22,12 @@ Started: Thu Jun  4 14:24:50 CEST 2026
   - Patterns discovered: Keep schema validation logic in `src/sol_audit_challenges/validation.py` and call it from thin Typer commands.
   - Gotchas encountered: Validation failures should include the user-provided file path and a JSON Schema path like `#/properties/id/pattern`.
   - Useful context: The public manifest example at `examples/challenge-manifest/case-0000.public.json` is valid and can be reused in CLI tests.
+---
+## 2026-06-04 14:49:33 CEST - US-003
+- Implemented `prepare-case` to export a requested Git commit with `git archive`, write the clean source snapshot under the public case directory, and create a schema-valid draft private oracle outside the public tree.
+- Files changed: `src/sol_audit_challenges/prepare.py`, `src/sol_audit_challenges/cli.py`, `tests/test_cli.py`, `README.md`, `prd.json`, `progress.txt`, `AGENTS.md`.
+- **Learnings for future iterations:**
+  - Patterns discovered: Keep Git export behavior in a focused helper module and keep Typer commands thin.
+  - Gotchas encountered: Draft private oracle commits should be resolved to full hex SHAs so they satisfy `schemas/private-oracle.schema.json`.
+  - Useful context: Tests can create temporary local Git repositories and validate generated private oracle files through the CLI.
 ---

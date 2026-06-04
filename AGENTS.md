@@ -33,3 +33,4 @@ ralph run --max 20
 - Project CLI code uses a Python `src/sol_audit_challenges/` package layout and exposes the `sol-audit-challenges` console script from `pyproject.toml`
 - Keep the Typer root callback in `src/sol_audit_challenges/cli.py`; it prevents the app from collapsing into a single command and preserves subcommand behavior
 - Keep JSON schema validation helpers in `src/sol_audit_challenges/validation.py`; CLI validation errors should include the input file path and the failing schema location.
+- `prepare-case` writes public snapshots under `<output-dir>/public/<case-id>/source` and draft private oracles under `<output-dir>/private/`; keep this separation when adding bundle, run, or scoring commands.
