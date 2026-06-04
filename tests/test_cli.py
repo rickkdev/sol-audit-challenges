@@ -808,6 +808,134 @@ def test_audit_leakage_reads_public_archives(tmp_path: Path) -> None:
     assert report["findings"] == []
 
 
+def test_end_to_end_fake_benchmark_fixture_flow(tmp_path: Path) -> None:
+    if shutil.which("git") is None:
+        pytest.skip("git is required for the end-to-end fixture flow")
+
+    fixture = Path("examples/fixtures/fake-vault")
+    repo = tmp_path / "repo"
+    shutil.copytree(fixture, repo)
+    run_git(repo, "init")
+    run_git(repo, "config", "user.email", "test@example.invalid")
+    run_git(repo, "config", "user.name", "Test User")
+    run_git(repo, "add", ".")
+    run_git(repo, "commit", "-m", "fake vulnerable fixture")
+    commit = run_git(repo, "rev-parse", "HEAD").strip()
+
+    prepared_dir = tmp_path / "prepared"
+    prepare_result = runner.invoke(
+        app,
+        [
+            "prepare-case",
+            "--repo",
+            str(repo),
+            "--commit",
+            commit,
+            "--case-id",
+            "case-0100",
+            "--output-dir",
+            str(prepared_dir),
+        ],
+    )
+    assert prepare_result.exit_code == 0, prepare_result.output
+    prepared_source = prepared_dir / "public" / "case-0100" / "source"
+    assert (prepared_source / "src" / "FakeVault.sol").exists()
+    assert not list(prepared_source.rglob(".git"))
+
+    sanitized_source = tmp_path / "sanitized" / "case-0100" / "source"
+    sanitize_result = runner.invoke(
+        app,
+        [
+            "sanitize-case",
+            "--source-dir",
+            str(prepared_source),
+            "--output-dir",
+            str(sanitized_source),
+            "--report",
+            str(tmp_path / "reports" / "case-0100.sanitizer.json"),
+        ],
+    )
+    assert sanitize_result.exit_code == 0, sanitize_result.output
+    assert "msg.sender.call" in (
+        sanitized_source / "src" / "FakeVault.sol"
+    ).read_text(encoding="utf-8")
+
+    public_dir = tmp_path / "public"
+    manifest = tmp_path / "case-0100.public.json"
+    shutil.copyfile("examples/challenge-manifest/case-0100.public.json", manifest)
+    bundle_result = runner.invoke(
+        app,
+        [
+            "bundle-case",
+            "--source-dir",
+            str(sanitized_source),
+            "--case-id",
+            "case-0100",
+            "--output-dir",
+            str(public_dir),
+            "--manifest",
+            str(manifest),
+        ],
+    )
+    assert bundle_result.exit_code == 0, bundle_result.output
+
+    validate_public_result = runner.invoke(app, ["validate-public", str(manifest)])
+    assert validate_public_result.exit_code == 0, validate_public_result.output
+
+    run_result = runner.invoke(
+        app,
+        [
+            "run-case",
+            "--bundle",
+            str(public_dir / "bundles" / "case-0100.tar.gz"),
+            "--manifest",
+            str(manifest),
+            "--command",
+            f"{sys.executable} -c \"from pathlib import Path; "
+            "print(Path('source/src/FakeVault.sol').read_text().count('withdraw')); "
+            "print(Path('public-manifest.json').exists())\"",
+            "--output-dir",
+            str(tmp_path / "runs-output"),
+        ],
+    )
+    assert run_result.exit_code == 0, run_result.output
+    run_dirs = list((tmp_path / "runs-output" / "runs" / "case-0100").iterdir())
+    metadata = json.loads((run_dirs[0] / "metadata.json").read_text(encoding="utf-8"))
+    assert metadata["return_code"] == 0
+    assert metadata["workspace"]["private_oracle_available"] is False
+
+    oracle = prepared_dir / "private" / "case-0100.private.json"
+    oracle_data = json.loads(
+        Path("examples/private-oracles/case-0100.oracle.example.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    write_json(oracle, {**oracle_data, "vulnerable_commit": commit})
+    validate_private_result = runner.invoke(app, ["validate-private", str(oracle)])
+    assert validate_private_result.exit_code == 0, validate_private_result.output
+
+    report = tmp_path / "case-0100.report.json"
+    shutil.copyfile("examples/submitted-reports/case-0100.report.json", report)
+    validate_report_result = runner.invoke(app, ["validate-report", str(report)])
+    assert validate_report_result.exit_code == 0, validate_report_result.output
+
+    score_result = runner.invoke(
+        app,
+        [
+            "score-report",
+            "--report",
+            str(report),
+            "--oracle",
+            str(oracle),
+            "--output",
+            str(tmp_path / "case-0100.score.json"),
+        ],
+    )
+    assert score_result.exit_code == 0, score_result.output
+    score = json.loads((tmp_path / "case-0100.score.json").read_text(encoding="utf-8"))
+    assert score["summary"]["accepted"] == 1
+
+
 def test_audit_leakage_detects_archive_clues_without_extracting(tmp_path: Path) -> None:
     archive = tmp_path / "leaky.tar.gz"
     leaky_file = tmp_path / "audit-report.md"

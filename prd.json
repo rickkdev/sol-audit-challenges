@@ -165,7 +165,7 @@
         "Run the full test suite successfully"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

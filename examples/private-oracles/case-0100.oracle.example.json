@@ -1,0 +1,24 @@
+{
+  "id": "case-0100",
+  "origin": {
+    "repository": "https://example.invalid/fake-vault/repo"
+  },
+  "vulnerable_commit": "abcdef1",
+  "accepted_finding": {
+    "summary": "Fake vault withdrawal sends value before updating internal balance accounting.",
+    "root_cause": "The withdraw function performs an external call before decreasing the caller balance.",
+    "impact": "A caller can reenter withdraw and repeatedly drain fake vault funds before accounting changes.",
+    "locations": [
+      {
+        "path": "src/FakeVault.sol",
+        "line": 14,
+        "symbol": "withdraw"
+      }
+    ]
+  },
+  "validation": {
+    "mode": "test",
+    "command": "forge test"
+  },
+  "sources": ["https://example.invalid/fake-vault/source"]
+}

@@ -61,6 +61,22 @@ python -m pytest
 - `templates/` - safe templates to copy into ignored private curator paths
 - `docs/` - benchmark design and operator documentation
 
+## Fake Benchmark Fixture
+
+`examples/fixtures/fake-vault/` is a complete fake Solidity challenge fixture
+with a simple reentrant withdrawal bug. It is safe to commit and is used by the
+end-to-end test to exercise prepare, sanitize, bundle, run, report validation,
+and scoring without real incident data or network access.
+
+The matching fake examples are:
+
+- `examples/challenge-manifest/case-0100.public.json`
+- `examples/private-oracles/case-0100.oracle.example.json`
+- `examples/submitted-reports/case-0100.report.json`
+
+Use `.oracle.example.json` for committed fake oracle examples. Real private
+oracle files should keep the ignored `.private.json` or `.oracle.json` suffixes.
+
 ## Private Candidate Research
 
 Real candidate incidents, source references, vulnerable commits, and oracle

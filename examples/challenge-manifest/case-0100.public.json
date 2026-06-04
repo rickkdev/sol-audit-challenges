@@ -1,0 +1,14 @@
+{
+  "id": "case-0100",
+  "language": ["solidity"],
+  "package": {
+    "type": "archive",
+    "path": "bundles/case-0100.tar.gz",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "prompt": "Find security issues in this fake vault codebase. Submit each finding with affected files, root cause, exploit impact, and a minimal proof sketch.",
+  "build": {
+    "commands": ["forge test"],
+    "network": "disabled"
+  }
+}
