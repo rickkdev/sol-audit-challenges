@@ -34,6 +34,7 @@ sol-audit-challenges validate-private path/to/case-0000.private.json
 sol-audit-challenges prepare-case --repo path/to/repo --commit abcdef1 --case-id case-0001 --output-dir work/cases
 sol-audit-challenges sanitize-case --source-dir work/cases/public/case-0001/source --output-dir work/sanitized/case-0001/source --config sanitize.json
 sol-audit-challenges bundle-case --source-dir work/sanitized/case-0001/source --case-id case-0001 --output-dir work/public
+sol-audit-challenges run-case --bundle work/public/bundles/case-0001.tar.gz --manifest work/public/case-0001.public.json --command "python -m tool_under_test source" --output-dir work/reports
 ```
 
 During development, the module can also be run directly after installation:
@@ -100,3 +101,37 @@ The archive contains the snapshot under a `source/` prefix and excludes private
 oracle files, local research notes, `.git` metadata, generated reports, and run
 outputs. Pass `--manifest path/to/case-0001.public.json` to update an existing
 public manifest while preserving fields such as `prompt` and `build`.
+
+## Running Cases
+
+`run-case` verifies the bundle checksum from the public manifest, extracts the
+archive into a temporary workspace, copies only the public manifest into that
+workspace as `public-manifest.json`, and runs the configured tool command from
+there. Run metadata, stdout, and stderr are written under
+`<output-dir>/runs/<case-id>/<run-id>/`; the extracted source snapshot is not
+used as the persistent output location.
+
+Local mode is the default:
+
+```bash
+sol-audit-challenges run-case \
+  --bundle work/public/bundles/case-0001.tar.gz \
+  --manifest work/public/case-0001.public.json \
+  --command "python -m tool_under_test source" \
+  --output-dir work/reports
+```
+
+Local mode is a documented fallback for machines without Docker. It limits the
+workspace contents to the public source and public manifest, but it does not
+enforce an operating-system network namespace. Docker mode runs with
+`--network none` and mounts the public workspace read-only:
+
+```bash
+sol-audit-challenges run-case \
+  --bundle work/public/bundles/case-0001.tar.gz \
+  --manifest work/public/case-0001.public.json \
+  --command "python -m tool_under_test source" \
+  --output-dir work/reports \
+  --mode docker \
+  --docker-image python:3.12-slim
+```

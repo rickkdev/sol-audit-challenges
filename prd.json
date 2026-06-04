@@ -90,7 +90,7 @@
         "Run metadata and tool output are stored under reports or runs without modifying the source snapshot"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

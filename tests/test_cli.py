@@ -2,6 +2,7 @@ import hashlib
 import json
 import shutil
 import subprocess
+import sys
 import tarfile
 from pathlib import Path
 
@@ -387,6 +388,112 @@ def test_bundle_case_updates_existing_manifest_package_only(tmp_path: Path) -> N
     assert manifest_data["build"] == {"commands": ["forge test"], "network": "disabled"}
     assert manifest_data["package"]["path"] == "public/bundles/case-0006.tar.gz"
     assert manifest_data["package"]["sha256"] != "0" * 64
+
+
+def test_run_case_extracts_public_bundle_and_captures_outputs(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    (source / "src").mkdir(parents=True)
+    (source / "src" / "Example.sol").write_text("contract Example {}\n", encoding="utf-8")
+
+    public = tmp_path / "public"
+    bundle_result = runner.invoke(
+        app,
+        [
+            "bundle-case",
+            "--source-dir",
+            str(source),
+            "--case-id",
+            "case-0007",
+            "--output-dir",
+            str(public),
+        ],
+    )
+    assert bundle_result.exit_code == 0, bundle_result.output
+
+    command = (
+        f"{sys.executable} -c "
+        "\"import pathlib; "
+        "print(sorted(path.name for path in pathlib.Path('.').iterdir())); "
+        "print(pathlib.Path('source/src/Example.sol').read_text().strip()); "
+        "print(pathlib.Path('public-manifest.json').exists())\""
+    )
+    output_dir = tmp_path / "reports"
+    result = runner.invoke(
+        app,
+        [
+            "run-case",
+            "--bundle",
+            str(public / "bundles" / "case-0007.tar.gz"),
+            "--manifest",
+            str(public / "case-0007.public.json"),
+            "--command",
+            command,
+            "--output-dir",
+            str(output_dir),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    run_dirs = list((output_dir / "runs" / "case-0007").iterdir())
+    assert len(run_dirs) == 1
+    run_dir = run_dirs[0]
+    stdout = (run_dir / "stdout.txt").read_text(encoding="utf-8")
+    metadata = json.loads((run_dir / "metadata.json").read_text(encoding="utf-8"))
+
+    assert "['public-manifest.json', 'source']" in stdout
+    assert "contract Example {}" in stdout
+    assert "True" in stdout
+    assert (run_dir / "stderr.txt").read_text(encoding="utf-8") == ""
+    assert metadata["case_id"] == "case-0007"
+    assert metadata["return_code"] == 0
+    assert metadata["workspace"]["private_oracle_available"] is False
+    assert metadata["network"]["mechanism"] == "local fallback; no network namespace is enforced"
+    assert not (source / "public-manifest.json").exists()
+
+
+def test_run_case_rejects_bundle_checksum_mismatch(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "Example.sol").write_text("contract Example {}\n", encoding="utf-8")
+
+    public = tmp_path / "public"
+    bundle_result = runner.invoke(
+        app,
+        [
+            "bundle-case",
+            "--source-dir",
+            str(source),
+            "--case-id",
+            "case-0008",
+            "--output-dir",
+            str(public),
+        ],
+    )
+    assert bundle_result.exit_code == 0, bundle_result.output
+
+    manifest = public / "case-0008.public.json"
+    manifest_data = json.loads(manifest.read_text(encoding="utf-8"))
+    manifest_data["package"]["sha256"] = "0" * 64
+    write_json(manifest, manifest_data)
+
+    result = runner.invoke(
+        app,
+        [
+            "run-case",
+            "--bundle",
+            str(public / "bundles" / "case-0008.tar.gz"),
+            "--manifest",
+            str(manifest),
+            "--command",
+            f"{sys.executable} -c \"print('should not run')\"",
+            "--output-dir",
+            str(tmp_path / "reports"),
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "checksum mismatch" in result.stderr
+    assert not (tmp_path / "reports" / "runs").exists()
 
 
 def write_json(path: Path, value: object) -> None:

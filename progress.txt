@@ -6,6 +6,7 @@
 - Prepared case outputs are split into `<output-dir>/public/<case-id>/source` for distributable source snapshots and `<output-dir>/private/` for draft oracle files.
 - Sanitization lives in `src/sol_audit_challenges/sanitize.py`; replacement reports should include labels, replacement values, counts, and file paths, but never the sensitive `find` strings from sanitizer config.
 - Bundling lives in `src/sol_audit_challenges/bundle.py`; public archives are deterministic `tar.gz` files under `bundles/<case-id>.tar.gz`, contain files below a `source/` prefix, and update public manifests with relative package paths plus SHA-256 checksums.
+- Running lives in `src/sol_audit_challenges/run.py`; `run-case` validates bundle checksums, exposes only `source/` and `public-manifest.json` in the tool workspace, and writes persistent run artifacts under `<output-dir>/runs/<case-id>/<run-id>/`.
 
 Started: Thu Jun  4 14:24:50 CEST 2026
 ---
@@ -48,4 +49,12 @@ Started: Thu Jun  4 14:24:50 CEST 2026
   - Patterns discovered: Keep bundle/archive behavior in `src/sol_audit_challenges/bundle.py`; the Typer command should only translate options, errors, and output paths.
   - Gotchas encountered: Deterministic gzip archives need both normalized tar member metadata and a fixed gzip `mtime`.
   - Useful context: Bundle archives expose source files under `source/`, so future `run-case` extraction should expect that public workspace prefix.
+---
+## 2026-06-04 15:00:10 CEST - US-006
+- Implemented `run-case` to verify a public bundle checksum, extract the source snapshot into a temporary public-only workspace, run a configurable tool command, support Docker no-network mode, and persist run metadata plus stdout/stderr under `runs`.
+- Files changed: `src/sol_audit_challenges/run.py`, `src/sol_audit_challenges/cli.py`, `tests/test_cli.py`, `README.md`, `prd.json`, `progress.txt`, `AGENTS.md`.
+- **Learnings for future iterations:**
+  - Patterns discovered: Keep runner behavior in `src/sol_audit_challenges/run.py` and leave Typer command handling thin.
+  - Gotchas encountered: Local mode can limit workspace contents but cannot enforce OS-level network isolation; Docker mode uses `--network none` and a read-only public workspace mount for enforcement.
+  - Useful context: The tool workspace contains `source/` and `public-manifest.json`; durable run artifacts are written outside that workspace under `<output-dir>/runs/<case-id>/<run-id>/`.
 ---

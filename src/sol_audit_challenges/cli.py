@@ -8,6 +8,7 @@ import typer
 from sol_audit_challenges import __version__
 from sol_audit_challenges.bundle import BundleCaseError, bundle_case
 from sol_audit_challenges.prepare import PrepareCaseError, prepare_case
+from sol_audit_challenges.run import RunCaseError, run_case
 from sol_audit_challenges.sanitize import SanitizeCaseError, sanitize_case
 from sol_audit_challenges.validation import (
     ManifestValidationError,
@@ -195,6 +196,72 @@ def bundle_case_command(
     typer.echo(f"Archive: {bundled.archive_path}")
     typer.echo(f"Manifest: {bundled.manifest_path}")
     typer.echo(f"SHA256: {bundled.sha256}")
+
+
+@app.command("run-case")
+def run_case_command(
+    bundle: Path = typer.Option(
+        ...,
+        "--bundle",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+        help="Public challenge bundle archive to extract.",
+    ),
+    manifest: Path = typer.Option(
+        ...,
+        "--manifest",
+        exists=True,
+        dir_okay=False,
+        readable=True,
+        help="Public challenge manifest for the bundle.",
+    ),
+    command: str = typer.Option(
+        ...,
+        "--command",
+        help="Tool command to run from the extracted public workspace.",
+    ),
+    output_dir: Path = typer.Option(
+        ...,
+        "--output-dir",
+        file_okay=False,
+        help="Directory where run metadata and captured output are written.",
+    ),
+    mode: str = typer.Option(
+        "local",
+        "--mode",
+        help="Runner mode: local or docker.",
+    ),
+    docker_image: str | None = typer.Option(
+        None,
+        "--docker-image",
+        help="Container image used when --mode docker is selected.",
+    ),
+    timeout: int = typer.Option(
+        900,
+        "--timeout",
+        help="Maximum command runtime in seconds.",
+    ),
+) -> None:
+    """Run a tool against a public challenge bundle."""
+    try:
+        result = run_case(
+            bundle_path=bundle,
+            manifest_path=manifest,
+            command=command,
+            output_dir=output_dir,
+            mode=mode,  # type: ignore[arg-type]
+            docker_image=docker_image,
+            timeout_seconds=timeout,
+        )
+    except RunCaseError as exc:
+        typer.secho(f"Run failed: {exc}", err=True, fg=typer.colors.RED)
+        raise typer.Exit(code=1) from exc
+
+    typer.echo(f"Ran {result.case_id}")
+    typer.echo(f"Run directory: {result.run_dir}")
+    typer.echo(f"Metadata: {result.metadata_path}")
+    typer.echo(f"Return code: {result.return_code}")
 
 
 def _run_validation(path: Path, validator: Callable[[Path], None], label: str) -> None:
